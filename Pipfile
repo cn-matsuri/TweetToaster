@@ -1,0 +1,16 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.mirrors.ustc.edu.cn/simple/"
+verify_ssl = true
+
+[dev-packages]
+pylint = "*"
+
+[packages]
+tkinter = "*"
+selenium = "*"
+requests = "*"
+pyside2 = "*"
+
+[requires]
+python_version = "3.7"
