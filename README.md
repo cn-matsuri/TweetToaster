@@ -1,13 +1,23 @@
 # 马自立自动烤肉机
 
 ## 安装方法：
-需要使用Python 3  
-`pip install selenium`  
 
+- 需要使用Python 3 
+
+- 需要安装pipenv 
+
+    $ pip install pipenv
+
+安装依赖环境
+
+    $ pipenv install
 
 ## 使用方法：
 进入run.py的根目录  
-必须使用bash或者linux类型命令行输入`python run.py`  
+必须使用命令行输入
+
+        pipenv shell # 进入虚拟环境
+        python gui.py # 运行程序
 
 出现一系列提示，可以照例子输入  
 输入推文链接: https://twitter.com/natsuiromatsuri/status/1137576329002438656  
