@@ -23,7 +23,7 @@ class TweetProcess:
 
     def save_screenshots(self):
         filename = datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-        self.driver.save_screenshot(f'/home/fzxiao/PycharmProjects/matsuri_translation/Matsuri_translation/cache/{filename}.png')
+        self.driver.save_screenshot(f'/home/fzxiao/PycharmProjects/matsuri_translation/Matsuri_translation/frontend/cache/{filename}.png')
         return filename
 
 
