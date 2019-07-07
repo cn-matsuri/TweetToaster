@@ -12,5 +12,5 @@ http://niku.matsuri.design/
 
 - 支持嵌入LOGO
 
-- 换一个好看的的前端
+- 换一个好用的的前端√
 
