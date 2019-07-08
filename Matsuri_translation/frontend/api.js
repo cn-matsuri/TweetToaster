@@ -20,7 +20,7 @@ function fetch_img(task_id) {
         var jqxhr = $.getJSON('https://api.matsuri.design/api/get_task=' + task_id,
             function (data) {
                 if (data.state === "SUCCESS") {
-                    $("#img").append('<img src="cache/' + data.result + '.png" alt="Result" style:"">')
+                    $("#img").append('<img class="mx-auto d-block" src="cache/' + data.result + '.png" alt="Result" style:"">')
                     clearInterval(event);
                 }
             })
