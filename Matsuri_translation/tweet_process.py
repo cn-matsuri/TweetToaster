@@ -24,7 +24,7 @@ class TweetProcess:
     def save_screenshots(self):
         filename = datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
         self.driver.save_screenshot(
-            f'/home/ubuntu/niku/cache/{filename}.png')
+            f'/home/ubuntu/matsuri_translation/Matsuri_translation/frontend/cache/{filename}.png')
         return filename
 
     def modify_tweet(self, text):

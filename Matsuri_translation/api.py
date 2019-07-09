@@ -2,7 +2,7 @@ from celery import Celery
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-from Matsuri_translation.manger import execute_event
+from manger import execute_event
 
 app = Flask(__name__)
 celery = Celery(app.name, broker='redis://localhost:6379/0', backend='redis')
