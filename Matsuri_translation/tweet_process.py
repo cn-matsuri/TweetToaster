@@ -35,8 +35,11 @@ class TweetProcess:
     logo_base64 = gongfang_official
 
     def modify_tweet(self, text):
+        self.driver.excute_script(
+            f'''$('.follow-button').css('display','none');'''
+        )
         self.driver.execute_script(
-            f'''$('.js-tweet-text-container').after('<div class="tweet-translation" data-dest-lang="zh"><div class="translation-attribution" style="font-size: 20px"><span><a class="attribution-logo" href="" rel="noopener" target="_blank" style="width: 360px; height: 31px; background: url({logo_base64}) 0 0 no-repeat"></a></div><p class="tweet-translation-text"></p><div class="js-tweet-text-container"><p data-aria-label-part="0" class="TweetTextSize TweetTextSize--jumbo js-tweet-text tweet-text" lang="">{text}</div>');''')
+            f'''$('.js-tweet-text-container').first().after('<div class="tweet-translation" data-dest-lang="zh"><div class="translation-attribution" style="font-size: 20px"><span><a class="attribution-logo" href="" rel="noopener" target="_blank" style="width: 360px; height: 31px; background: url({logo_base64}) 0 0 no-repeat"></a></div><p class="tweet-translation-text"></p><div class="js-tweet-text-container"><p data-aria-label-part="0" class="TweetTextSize TweetTextSize--jumbo js-tweet-text tweet-text" lang="">{text}</div>');''')
         self.driver.execute_script(
             f'''
             var timestamp = document.querySelector('.permalink-header .time > a > span').getAttribute('data-time-ms');
