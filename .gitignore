@@ -102,4 +102,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-*.png
+Matsuri_translation/frontend/cache/

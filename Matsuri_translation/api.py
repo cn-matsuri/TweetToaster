@@ -5,7 +5,7 @@ from flask_cors import CORS
 from manger import execute_event
 
 app = Flask(__name__)
-celery = Celery(app.name, broker='redis://localhost:6379/0', backend='redis')
+celery = Celery(app.name, broker='redis://localhost:6380/0', backend='redis')
 CORS(app)
 
 
@@ -30,4 +30,4 @@ def get_task_result(task_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=8083)
