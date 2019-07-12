@@ -1,6 +1,6 @@
 from datetime import datetime
 from retrying import retry
-from logo import *
+
 
 class TweetProcess:
     def __init__(self, driver):
@@ -18,30 +18,40 @@ class TweetProcess:
 
     @retry
     def scroll_page_to_tweet(self):
-        self.driver.set_window_size(1920, 1080)
-        self.driver.execute_script("$('.permalink-inner.permalink-tweet-container')[0].scrollIntoView()")
+        self.driver.set_window_size(640, 2000)
+        self.driver.execute_script("$('body')[0].scrollIntoView()")
 
     def save_screenshots(self):
-        filename = datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
+        filename = datetime.now().strftime("%Y%m%d%H%M%S")
         self.driver.save_screenshot(
             f'/home/ubuntu/matsuri_translation/Matsuri_translation/frontend/cache/{filename}.png')
-        return filename   
-
-
-    ## 如果twitter链接是https://twitter.com/natsuiromatsuri 使用gongfang_official 如果是https://twitter.com/7216_2nd 使用gongfang_keke
-    ## 如果推特是https://twitter.com/shirakamifubuki 使用fubuki_chapu
-    ## 如果推特是https://twitter.com/murasakishionch 使用mofa_keke
-
-    logo_base64 = gongfang_official
+        datafile=open(f'/home/ubuntu/matsuri_translation/Matsuri_translation/frontend/cache/{filename}.txt','w',encoding="utf-8")
+        print(self.driver.execute_script('''
+            var ls=[];
+            $('.js-tweet-text-container').each(function(i,obj){
+                var item={
+                    top:$(obj).offset().top,
+                    bottom:$(obj).offset().top+$(obj).height(),
+                    text:$(obj).text().trim(),
+                    blockbottom:$(obj).parents(".permalink-tweet-container,.js-stream-item").offset().top+$(obj).parents(".permalink-tweet-container,.js-stream-item").height()
+                }
+                ls.push(item)
+            });
+            return JSON.stringify(ls);
+        '''),file=datafile)
+        return filename
 
     def modify_tweet(self, text):
-        self.driver.excute_script(
-            f'''$('.follow-button').css('display','none');'''
-        )
-        self.driver.execute_script(
-            f'''$('.js-tweet-text-container').first().after('<div class="tweet-translation" data-dest-lang="zh"><div class="translation-attribution" style="font-size: 20px"><span><a class="attribution-logo" href="" rel="noopener" target="_blank" style="width: 360px; height: 31px; background: url({logo_base64}) 0 0 no-repeat"></a></div><p class="tweet-translation-text"></p><div class="js-tweet-text-container"><p data-aria-label-part="0" class="TweetTextSize TweetTextSize--jumbo js-tweet-text tweet-text" lang="">{text}</div>');''')
+
         self.driver.execute_script(
             f'''
+            $("body").html($(".PermalinkOverlay-content").html());
+            $(".permalink-tweet").css("border-radius",0);
+            $(".permalink").css("border",0);
+            $(".permalink-container").css("width","640px");
+            $("#ancestors").css("margin","0");
+            $("body").css("overflow","hidden");
+            $('.follow-button').css('display','none');
             var timestamp = document.querySelector('.permalink-header .time > a > span').getAttribute('data-time-ms');
             var now = new Date(timestamp - 0);
             var year = now.getFullYear();
@@ -52,8 +62,8 @@ class TweetProcess:
             var time = hours + ":" + minutes;
             var str = year + "年" + month + "月" + day + "日，" + time;
             document.querySelector('.client-and-actions .metadata > span').innerText = str;
-            '''
-        )
+            ''')
+
 
 
 if __name__ == '__main__':

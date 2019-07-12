@@ -1,0 +1,68 @@
+td textarea {
+    width: 100%;
+    height: 30px;
+}
+
+
+.screenshotclip {
+    width: 640px;
+    /*margin: auto;*/
+    /*background-size: 640px;*/
+}
+
+
+@media (min-width: 1200px) {
+    body {
+        height: 100%;
+        overflow: hidden;
+
+    }
+
+    html {
+        height: 100%;
+    }
+
+    .tablewrapper {
+        max-height: 500px;
+        overflow: auto;
+    }
+
+    .screenshotwrapper {
+        display: inline-block;
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        width: 657px;
+    }
+
+    .settingswapper {
+        display: inline-block;
+        height: 100%;
+        vertical-align: top;
+        width: calc(100% - 670px);
+        overflow: auto;
+    }
+}
+
+@media (max-width: 1200px) {
+    body {
+    }
+
+    html {
+    }
+
+    .screenshotwrapper {
+        display: block;
+        overflow-y: auto;
+        overflow-x: hidden;
+        width: 100%;
+    }
+
+    .settingswapper {
+        display: block;
+        vertical-align: top;
+        width: 100%;
+    }
+}
+
+
