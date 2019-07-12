@@ -7,7 +7,7 @@ function submit_task() {
 
 
     var jqxhr = $.ajax({
-        url: "http://api.wudifeixue.com/api/tasks",
+        url: "http://api.matsuri.design/api/tasks",
         type: "post",
         data: JSON.stringify({
             "url": url,
@@ -28,7 +28,7 @@ function fetch_img(task_id) {
         locked = true;
         count += 1;
 
-        var jqxhr = $.getJSON('http://api.wudifeixue.com/api/get_task=' + task_id,
+        var jqxhr = $.getJSON('http://api.matsuri.design/api/get_task=' + task_id,
             function (data) {
                 locked = false;
                 if (data.state === "SUCCESS") {

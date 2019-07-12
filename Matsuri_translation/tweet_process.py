@@ -24,8 +24,8 @@ class TweetProcess:
     def save_screenshots(self):
         filename = datetime.now().strftime("%Y%m%d%H%M%S")
         self.driver.save_screenshot(
-            f'/home/ubuntu/matsuri_translation_dev/Matsuri_translation/frontend/cache/{filename}.png')
-        datafile=open(f'/home/ubuntu/matsuri_translation_dev/Matsuri_translation/frontend/cache/{filename}.txt','w',encoding="utf-8")
+            f'/home/ubuntu/matsuri_translation/Matsuri_translation/frontend/cache/{filename}.png')
+        datafile=open(f'/home/ubuntu/matsuri_translation/Matsuri_translation/frontend/cache/{filename}.txt','w',encoding="utf-8")
         print(self.driver.execute_script('''
             var ls=[];
             $('.js-tweet-text-container').each(function(i,obj){

@@ -2,18 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="bc3f0d7c-ca91-46f8-b57b-68ef87a3c5ea" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Matsuri_translation/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Matsuri_translation/api.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Matsuri_translation/celery_run.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Matsuri_translation/frontend/api.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Matsuri_translation/frontend/index.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Matsuri_translation/logo.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Matsuri_translation/manger.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Matsuri_translation/run.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Matsuri_translation/tweet_process.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -22,7 +11,19 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300" />
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/Matsuri_translation/api.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state>
+              <folding>
+                <element signature="e#0#25#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -80,6 +81,24 @@
               <item name="matsuri_translation_production" type="b2602c69:ProjectViewProjectNode" />
               <item name="matsuri_translation_production" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="matsuri_translation_production" type="b2602c69:ProjectViewProjectNode" />
+              <item name="matsuri_translation_production" type="462c0819:PsiDirectoryNode" />
+              <item name="Matsuri_translation" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="matsuri_translation_production" type="b2602c69:ProjectViewProjectNode" />
+              <item name="matsuri_translation_production" type="462c0819:PsiDirectoryNode" />
+              <item name="Matsuri_translation" type="462c0819:PsiDirectoryNode" />
+              <item name="frontend" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="matsuri_translation_production" type="b2602c69:ProjectViewProjectNode" />
+              <item name="matsuri_translation_production" type="462c0819:PsiDirectoryNode" />
+              <item name="Matsuri_translation" type="462c0819:PsiDirectoryNode" />
+              <item name="frontend" type="462c0819:PsiDirectoryNode" />
+              <item name="cache" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
@@ -89,6 +108,11 @@
   <component name="PropertiesComponent">
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.highlight.mappings" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.highlight.symlinks" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.date" value="false" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.permissions" value="false" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.size" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/Matsuri_translation" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
@@ -96,6 +120,9 @@
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\PycharmProjects\matsuri_translation_production" />
+    </key>
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\FZxia\PycharmProjects\Matsuri_translation\Matsuri_translation" />
     </key>
@@ -224,16 +251,23 @@
       <workItem from="1556784555736" duration="11316000" />
       <workItem from="1559889382090" duration="6559000" />
       <workItem from="1559895987987" duration="15493000" />
-      <workItem from="1562947410679" duration="241000" />
+      <workItem from="1562947410679" duration="378000" />
     </task>
+    <task id="LOCAL-00001" summary="init tweetoaster production copy">
+      <created>1562947776337</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1562947776337</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="33785000" />
+    <option name="totallyTimeSpent" value="33922000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.114072494" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -263,6 +297,10 @@
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="init tweetoaster production copy" />
+    <option name="LAST_COMMIT_MESSAGE" value="init tweetoaster production copy" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -307,5 +345,14 @@
     <entry file="file://$PROJECT_DIR$/Matsuri_translation/test.png" />
     <entry file="file://$PROJECT_DIR$/Matsuri_translation/gui.py" />
     <entry file="file://$PROJECT_DIR$/Matsuri_translation/run.py" />
+    <entry file="file://$PROJECT_DIR$/Matsuri_translation/api.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <folding>
+            <element signature="e#0#25#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
   </component>
 </project>

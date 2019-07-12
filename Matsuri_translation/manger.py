@@ -4,7 +4,7 @@ from selenium.webdriver.chrome.webdriver import Options
 
 from tweet_process import TweetProcess
 
-celery = Celery('api', broker='redis://localhost:6380', backend='redis://localhost:6380/0')
+celery = Celery('api', broker='redis://localhost:6379', backend='redis://localhost:6379/0')
 
 
 class BaseDriveTask(Task):
