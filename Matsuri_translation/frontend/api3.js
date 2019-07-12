@@ -1,5 +1,6 @@
 function submit_task() {
     var url = $('#url').val();
+    url=url.replace("mobile.twitter.com","twitter.com");
     //var translation = $('#translation').val().replace(/\r\n|\r|\n/g, '\\r');
     $('#progress').val("开始获取图像");
     $('#url').css("display", "none");
@@ -28,36 +29,44 @@ function fetch_img(task_id) {
         locked = true;
         count += 1;
 
-        var jqxhr = $.getJSON('https://api.matsuri.design/api/get_task=' + task_id,
-            function (data) {
-                locked = false;
-                if (data.state === "SUCCESS") {
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('GET', 'cache/' + data.result + '.png');
-                    xhr.onprogress = function (event) {
-                        if (event.lengthComputable) {
-                            //console.log((event.loaded / event.total) * 100); // 进度
-                            $('#progress').val("正在下载图片 (" + Math.round((event.loaded / event.total) * 100) + "%)");
-                        }
-                    };
+            var jqxhr = $.ajax({url:'https://api.matsuri.design/api/get_task=' + task_id,
+                success:function (data,status,xhr) {
+                    locked = false;
+                    if (data.state === "SUCCESS") {
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('GET', 'cache/' + data.result + '.png');
+                        xhr.onprogress = function (event) {
+                            if (event.lengthComputable) {
+                                //console.log((event.loaded / event.total) * 100); // 进度
+                                $('#progress').val("正在下载图片 (" + Math.round((event.loaded / event.total) * 100) + "%)");
+                            }
+                        };
 
-                    xhr.onload = function (e) {
-                        $("#screenshots").html("            <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
-                            "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
-                        $("#screenshotclip0").css("background-image", 'url("cache/' + data.result + '.png")');
-                        $('#url').css("display", "");
-                        $('#progress').css("display", "none");
-                        clip_screenshot();
-                        refresh_trans_div();
-                    };
-                    xhr.send();
-                    $.get('cache/' + data.result + '.txt', function (data, status) {
-                        console.log(data);
-                        show_translate(JSON.parse(data));
-                        refresh_trans_div();
-                    });
-                    clearInterval(event);
-                }
+                        xhr.onload = function (e) {
+                            $("#screenshots").html("            <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
+                                "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
+                            $("#screenshotclip0").css("background-image", 'url("cache/' + data.result + '.png")');
+                            $('#url').css("display", "");
+                            $('#progress').css("display", "none");
+                            clip_screenshot();
+                            refresh_trans_div();
+                        };
+                        xhr.send();
+                        $.get('cache/' + data.result + '.txt', function (data, status) {
+                            console.log(data);
+                            show_translate(JSON.parse(data));
+                            refresh_trans_div();
+                        });
+                        clearInterval(event);
+                    }
+                },
+                error:function(xhr,info,e){
+                console.log(info);
+                    alert("服务器错误，请检查您提供的地址是否为正确的推特地址");
+                    $('#url').css("display", "");
+                    $('#progress').css("display", "none");
+                },
+                dataType: 'json',
             });
         $('#progress').val("等待服务器响应，已尝试" + count + "次");
     }, 100)
@@ -106,6 +115,8 @@ function clip_screenshot() {
         $("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom);
         $("#screenshotclip" + (i + 1)).css("background-position-y", -tweetpos[i].blockbottom);
         $("#screenshotclip" + (i + 1000)).css("background-position-y", -tweetpos[i].bottom);
+        $("#screenshotclip" + (i + 1)).css("display","none");
+        $("#screenshotclip" + (i + 1000)).css("display","none");
 
 
         $("#screenshotclip" + i).after("<div class='screenshotclip' id='" + "translatediv" + i + "'></div>");
