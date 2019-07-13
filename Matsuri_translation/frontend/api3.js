@@ -8,7 +8,7 @@ function submit_task() {
 
 
     var jqxhr = $.ajax({
-        url: "https://api.matsuri.design/api/tasks",
+        url: "/api/tasks",
         type: "post",
         data: JSON.stringify({
             "url": url,
@@ -29,7 +29,7 @@ function fetch_img(task_id) {
         locked = true;
         count += 1;
 
-            var jqxhr = $.ajax({url:'https://api.matsuri.design/api/get_task=' + task_id,
+            var jqxhr = $.ajax({url:'/api/get_task=' + task_id,
                 success:function (data,status,xhr) {
                     locked = false;
                     if (data.state === "SUCCESS") {
