@@ -1,12 +1,8 @@
-from celery import Celery
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 
-from manger import execute_event
+from manager import execute_event, celery
 
 app = Flask(__name__)
-celery = Celery(app.name, broker='redis://localhost:6379/0', backend='redis')
-CORS(app)
 
 
 # celery.conf.update(app.config)
