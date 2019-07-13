@@ -128,9 +128,12 @@ function refresh_trans_div() {
     if (template != "") localStorage.setItem("translatetemp", template);
     var isMultiMode=true;
     var templates=[];
-    var names=template.match(/(?<=<!--).*(?=-->)/g);
+    var names=template.match(/<!--.*-->/g);
     var contents=template.split(/<!--.*-->/g);
     try {
+        for (var i=0;i<names.length;i++){
+            names[i]=names[i].replace("<!--","").replace("-->","");
+        }
         for (var i = 0; i < names.length / 2; i++) {
             if (names[i * 2] == names[i * 2 + 1]) {
                 templates.push({
@@ -217,24 +220,12 @@ $(function () {
 
 });
 
-function createAndDownloadFile(fileName, uri) {
-    var aTag = document.createElement('a');
-    var blob = dataURItoBlob(uri, 'png');
-    aTag.download = fileName;
-    aTag.href = URL.createObjectURL(blob);
-    aTag.click();
-    URL.revokeObjectURL(blob);
-}
-
-function dataURItoBlob(dataURI, dataTYPE) {
-    var binary = atob(dataURI.split(',')[1]), array = [];
-    for (var i = 0; i < binary.length; i++) array.push(binary.charCodeAt(i));
-    return new Blob([new Uint8Array(array)], {type: dataTYPE});
-}
-
 function downloadAsCanvas() {
     $('body')[0].scrollIntoView();
     html2canvas(document.querySelector("#screenshots")).then(canvas => {
-        createAndDownloadFile("twitterImg" + new Date().getTime() + ".png", canvas.toDataURL("image/png"));
+        //createAndDownloadFile("twitterImg" + new Date().getTime() + ".png", canvas.toDataURL("image/png"));
+            canvas.toBlob(function(blob) {
+            saveAs(blob, "twitterImg" + new Date().getTime() + ".png");
+        });
     });
 }
