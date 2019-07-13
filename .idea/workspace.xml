@@ -2,11 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="bc3f0d7c-ca91-46f8-b57b-68ef87a3c5ea" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/webServers.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/deployment.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/jsLibraryMappings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Matsuri_translation.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Matsuri_translation.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Matsuri_translation/frontend/api3.js" beforeDir="false" afterPath="$PROJECT_DIR$/Matsuri_translation/frontend/api3.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Matsuri_translation/frontend/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/Matsuri_translation/frontend/index.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Matsuri_translation/frontend/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/Matsuri_translation/frontend/index.html" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -21,7 +21,7 @@
         <entry file="file://$PROJECT_DIR$/Matsuri_translation/celeryconfig_example.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="51">
-              <caret line="3" lean-forward="true" selection-start-line="3" selection-end-line="3" />
+              <caret line="3" selection-start-line="3" selection-end-line="3" />
             </state>
           </provider>
         </entry>
@@ -47,8 +47,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Matsuri_translation/frontend/api3.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="296">
-              <caret line="221" selection-start-line="221" selection-end-line="221" />
+            <state relative-caret-position="347">
+              <caret line="91" column="25" lean-forward="true" selection-start-line="91" selection-start-column="25" selection-end-line="91" selection-end-column="25" />
               <folding>
                 <element signature="n#style#0;n#div#0;n#!!top" expanded="true" />
                 <element signature="n#style#0;n#div#0;n#!!top" expanded="true" />
@@ -58,11 +58,25 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Matsuri_translation/frontend/index.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="272">
-              <caret line="16" column="44" lean-forward="true" selection-start-line="16" selection-start-column="44" selection-end-line="16" selection-end-column="44" />
+            <state relative-caret-position="262">
+              <caret line="57" selection-start-line="57" selection-end-line="57" selection-end-column="34" />
+              <folding>
+                <element signature="n#style#0;n#div#2;n#div#0;n#div#1;n#body#0;n#html#0;n#!!top" expanded="true" />
+                <element signature="n#style#0;n#button#0;n#div#2;n#div#0;n#div#1;n#body#0;n#html#0;n#!!top" expanded="true" />
+                <element signature="n#style#0;n#textarea#0;n#div#3;n#div#0;n#div#1;n#body#0;n#html#0;n#!!top" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/Matsuri_translation/frontend/index.css">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="276">
+              <caret line="58" column="38" lean-forward="true" selection-start-line="58" selection-start-column="38" selection-end-line="58" selection-end-column="38" />
             </state>
           </provider>
         </entry>
@@ -76,7 +90,7 @@
         <entry file="file://$PROJECT_DIR$/.gitignore">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="507">
-              <caret line="106" lean-forward="true" selection-start-line="106" selection-end-line="106" />
+              <caret line="106" selection-start-line="106" selection-end-line="106" />
             </state>
           </provider>
         </entry>
@@ -85,7 +99,7 @@
         <entry file="file://$PROJECT_DIR$/Matsuri_translation/celeryconfig.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="51">
-              <caret line="3" lean-forward="true" selection-start-line="3" selection-end-line="3" />
+              <caret line="3" selection-start-line="3" selection-end-line="3" />
             </state>
           </provider>
         </entry>
@@ -94,7 +108,7 @@
         <entry file="remoteDeploymentFS://&lt;4361beb6-7a00-4af1-8e1b-7bdc4295f78f&gt;/Matsuri_translation/celeryconfig.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="51">
-              <caret line="3" lean-forward="true" selection-start-line="3" selection-end-line="3" />
+              <caret line="3" selection-start-line="3" selection-end-line="3" />
             </state>
           </provider>
         </entry>
@@ -121,6 +135,11 @@
       </map>
     </option>
   </component>
+  <component name="GithubProjectSettings">
+    <option name="CREATE_PULL_REQUEST_DEFAULT_BRANCH" value="master" />
+    <option name="CREATE_PULL_REQUEST_DEFAULT_REPO_USER" value="cn-matsuri" />
+    <option name="CREATE_PULL_REQUEST_DEFAULT_REPO_NAME" value="matsuri_translation" />
+  </component>
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
@@ -146,6 +165,7 @@
         <option value="$PROJECT_DIR$/Matsuri_translation/frontend/FileSaver.min.js" />
         <option value="$PROJECT_DIR$/Matsuri_translation/frontend/api3.js" />
         <option value="$PROJECT_DIR$/Matsuri_translation/frontend/index.html" />
+        <option value="$PROJECT_DIR$/Matsuri_translation/frontend/index.css" />
       </list>
     </option>
   </component>
@@ -343,7 +363,7 @@
       <workItem from="1559895987987" duration="15493000" />
       <workItem from="1562947410679" duration="2513000" />
       <workItem from="1562959664154" duration="1598000" />
-      <workItem from="1563030758959" duration="3395000" />
+      <workItem from="1563030758959" duration="15969000" />
     </task>
     <task id="LOCAL-00001" summary="init tweetoaster production copy">
       <created>1562947776337</created>
@@ -373,11 +393,18 @@
       <option name="project" value="LOCAL" />
       <updated>1562960997998</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="忽略了启用中的config以便调试，修复了safari支持（正则表达式），使用了开源库替代了浏览器自带的blob以允许ios使用">
+      <created>1563034463665</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1563034463665</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="41050000" />
+    <option name="totallyTimeSpent" value="53624000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -418,7 +445,8 @@
     <MESSAGE value="修改了硬链接为生产环境" />
     <MESSAGE value="接受了review时的建议" />
     <MESSAGE value="更新了mobile自动传电脑版链接，服务器500提示，隐藏了不需要的推特尾部" />
-    <option name="LAST_COMMIT_MESSAGE" value="更新了mobile自动传电脑版链接，服务器500提示，隐藏了不需要的推特尾部" />
+    <MESSAGE value="忽略了启用中的config以便调试，修复了safari支持（正则表达式），使用了开源库替代了浏览器自带的blob以允许ios使用" />
+    <option name="LAST_COMMIT_MESSAGE" value="忽略了启用中的config以便调试，修复了safari支持（正则表达式），使用了开源库替代了浏览器自带的blob以允许ios使用" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -514,7 +542,7 @@
     <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="507">
-          <caret line="106" lean-forward="true" selection-start-line="106" selection-end-line="106" />
+          <caret line="106" selection-start-line="106" selection-end-line="106" />
         </state>
       </provider>
     </entry>
@@ -528,21 +556,14 @@
     <entry file="file://$PROJECT_DIR$/Matsuri_translation/celeryconfig_example.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="51">
-          <caret line="3" lean-forward="true" selection-start-line="3" selection-end-line="3" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Matsuri_translation/run.sh">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret selection-end-column="38" />
+          <caret line="3" selection-start-line="3" selection-end-line="3" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/Matsuri_translation/celeryconfig.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="51">
-          <caret line="3" lean-forward="true" selection-start-line="3" selection-end-line="3" />
+          <caret line="3" selection-start-line="3" selection-end-line="3" />
         </state>
       </provider>
     </entry>
@@ -556,10 +577,23 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/Matsuri_translation/frontend/canvas-toBlob.js">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Matsuri_translation/frontend/Blob.js">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Matsuri_translation/run.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/Matsuri_translation/frontend/api3.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="296">
-          <caret line="221" selection-start-line="221" selection-end-line="221" />
+        <state relative-caret-position="347">
+          <caret line="91" column="25" lean-forward="true" selection-start-line="91" selection-start-column="25" selection-end-line="91" selection-end-column="25" />
           <folding>
             <element signature="n#style#0;n#div#0;n#!!top" expanded="true" />
             <element signature="n#style#0;n#div#0;n#!!top" expanded="true" />
@@ -568,16 +602,22 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Matsuri_translation/frontend/canvas-toBlob.js">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Matsuri_translation/frontend/Blob.js">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/Matsuri_translation/frontend/index.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="272">
-          <caret line="16" column="44" lean-forward="true" selection-start-line="16" selection-start-column="44" selection-end-line="16" selection-end-column="44" />
+        <state relative-caret-position="262">
+          <caret line="57" selection-start-line="57" selection-end-line="57" selection-end-column="34" />
+          <folding>
+            <element signature="n#style#0;n#div#2;n#div#0;n#div#1;n#body#0;n#html#0;n#!!top" expanded="true" />
+            <element signature="n#style#0;n#button#0;n#div#2;n#div#0;n#div#1;n#body#0;n#html#0;n#!!top" expanded="true" />
+            <element signature="n#style#0;n#textarea#0;n#div#3;n#div#0;n#div#1;n#body#0;n#html#0;n#!!top" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Matsuri_translation/frontend/index.css">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="276">
+          <caret line="58" column="38" lean-forward="true" selection-start-line="58" selection-start-column="38" selection-end-line="58" selection-end-column="38" />
         </state>
       </provider>
     </entry>

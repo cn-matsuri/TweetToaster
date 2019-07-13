@@ -202,7 +202,9 @@ $(function () {
             window.location.href="/";
         });
     }
-
+    $("#btnToggleTemplate").click(function () {
+        if($("#translatetemp").css("display")=="none")$("#translatetemp").show();else $("#translatetemp").hide();
+    });
     $('#button-submit').click(function () {
         submit_task();
     });
