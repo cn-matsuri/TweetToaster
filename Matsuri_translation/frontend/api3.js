@@ -8,7 +8,7 @@ function submit_task() {
 
 
     var jqxhr = $.ajax({
-        url: "https://api.matsuri.design/api/tasks",
+        url: "/api/tasks",
         type: "post",
         data: JSON.stringify({
             "url": url,
@@ -29,7 +29,7 @@ function fetch_img(task_id) {
         locked = true;
         count += 1;
 
-            var jqxhr = $.ajax({url:'https://api.matsuri.design/api/get_task=' + task_id,
+            var jqxhr = $.ajax({url:'/api/get_task=' + task_id,
                 success:function (data,status,xhr) {
                     locked = false;
                     if (data.state === "SUCCESS") {
@@ -204,8 +204,8 @@ $(function () {
         submit_task();
     });
     if (localStorage.getItem("translatetemp") == null) localStorage.setItem("translatetemp", '<div style="margin:10px 38px">\n' +
-        '<h4 style="color:#3CF">由<img src="img/xsjgf.png" width="24"><span style="color:#FC3">夏色祭工坊</span>翻译自日语</h4>\n' +
-        '<h5>{T}</h5>\n' +
+        '<img src="img/gongfang_official.png" height="38">\n' +
+        '<div style="font-size:27px;">{T}</div>\n' +
         '</div>')
     $("#translatetemp").val(localStorage.getItem("translatetemp"));
     $("#translatetemp").keyup(refresh_trans_div);
