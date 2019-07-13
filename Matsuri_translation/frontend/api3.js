@@ -204,8 +204,8 @@ $(function () {
         submit_task();
     });
     if (localStorage.getItem("translatetemp") == null) localStorage.setItem("translatetemp", '<div style="margin:10px 38px">\n' +
-        '<h4 style="color:#3CF">由<img src="img/xsjgf.png" width="24"><span style="color:#FC3">夏色祭工坊</span>翻译自日语</h4>\n' +
-        '<h5>{T}</h5>\n' +
+        '<img src="img/gongfang_official.png" height="38">\n' +
+        '<div style="font-size:27px;">{T}</div>\n' +
         '</div>')
     $("#translatetemp").val(localStorage.getItem("translatetemp"));
     $("#translatetemp").keyup(refresh_trans_div);
