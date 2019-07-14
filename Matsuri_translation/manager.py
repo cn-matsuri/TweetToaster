@@ -2,10 +2,10 @@ from celery import Celery
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import Options
 
-from tweet_process import TweetProcess
+from .tweet_process import TweetProcess
 
 celery = Celery('api')
-celery.config_from_object('celeryconfig')
+celery.config_from_object('Matsuri_translation.celeryconfig')
 
 
 @celery.task()
