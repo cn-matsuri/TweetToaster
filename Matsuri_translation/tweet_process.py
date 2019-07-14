@@ -23,11 +23,11 @@ class TweetProcess:
 
     def save_screenshots(self):
         filename = datetime.now().strftime("%Y%m%d%H%M%S")
-        if not isdir('frontend/cache'):
-            mkdir('frontend/cache')
+        if not isdir('Matsuri_translation/frontend/cache'):
+            mkdir('Matsuri_translation/frontend/cache')
         self.driver.save_screenshot(
-            f'frontend/cache/{filename}.png')
-        datafile = open(f'frontend/cache/{filename}.txt', 'w',
+            f'Matsuri_translation/frontend/cache/{filename}.png')
+        datafile = open(f'Matsuri_translation/frontend/cache/{filename}.txt', 'w',
                         encoding="utf-8")
         print(self.driver.execute_script('''
             var ls=[];
