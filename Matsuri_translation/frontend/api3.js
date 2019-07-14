@@ -87,9 +87,11 @@ function show_translate(data) {
             "      <th scope=\"row\">" +
             "<input type=\'checkbox\' " + (i == 0 ? "checked" : "") + " id=\'show" + i + "\'>" +
             "</th>\n" +
-            "      <td class='originaltext'>" + tweetpos[i].text + "</td>\n" +
-            "      <td><div class=\'translatetd\' id=\'translatetd" + i + "\' " + (i > 0 ? "style='display:none'" : "") + " >" +
-            "<textarea id=\'transtxt" + i + "\' " + (i == 0 ? "style='height:100px'" : "") + "></textarea>\n      <div class=\"dropdown templatedropdown\">\n  <button class=\"btn btn-secondary dropdown-toggle\" type=\"button\" id=\"dropdownMenu" + i + "\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">\n    模板选择\n  </button>\n  <div class=\"dropdown-menu dropdownmenuitems\" aria-labelledby=\"dropdownMenu" + i + "\" id=\"dropdownmenuitems" + i + "\">\n  </div>\n</div>\n      " +
+            "      <td class=\'originaltext\'>" + tweetpos[i].text + "</td>\n" +
+            "    <td><div class=\'translatetd\' id=\'translatetd" + i + "\' " + (i > 0 ? "style='display:none'" : "") + " ><div class=\'input-group\'>" +
+            "<textarea id=\'transtxt" + i + "\' class=\'form-control\' " + (i == 0 ? "style='height:100px'" : "") + "></textarea></div>\n" +
+            "      <div class=\"dropdown templatedropdown\">\n" +
+            "  <button class=\"btn btn-outline-secondary w-100 dropdown-toggle\" type=\"button\" id=\"dropdownMenu" + i + "\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">\n    模板选择\n  </button>\n  <div class=\"dropdown-menu dropdownmenuitems\" aria-labelledby=\"dropdownMenu" + i + "\" id=\"dropdownmenuitems" + i + "\">\n  </div>\n</div>\n      " +
             "</div></td>\n" +
             "    </tr>");
 
@@ -106,7 +108,11 @@ function show_translate(data) {
             $("#screenshotclip" + $("tbody textarea").index(this))[0].scrollIntoView();
 
         });
-        $("#show" + i).change(refresh_trans_div);
+        $("#show" + i).change(function () {
+            refresh_trans_div();
+            $("#screenshotclip" + $("tbody input").index(this))[0].scrollIntoView();
+
+        });
 
     }
     $(".originaltext").click(function () {
@@ -162,7 +168,7 @@ function refresh_trans_div() {
         templates = [{name: "", content: template}];
     }
     //console.log(templates);
-    if (isMultiMode) $('.templatedropdown').show(); else $('.templatedropdown').hide();
+    if (isMultiMode) $('.translatetd').addClass("multi"); else  $('.translatetd').removeClass("multi");
     $('.dropdownmenuitems').html("");
     for (var i = 0; i < templates.length; i++) {
         $('.dropdownmenuitems').append('<button class="dropdown-item templatebutton" type="button">' + templates[i].name + '</button>')
@@ -234,6 +240,13 @@ $(function () {
         '</div>')
     $("#translatetemp").val(localStorage.getItem("translatetemp"));
     $("#translatetemp").keyup(refresh_trans_div);
+    $(".screenshotwrapper").on("touchstart",function () {
+        $("body").addClass("overview");
+    });
+    $(".settingswrapper").on("touchstart",function () {
+        $("body").removeClass("overview");
+    });
+
 
     if (getUrlParam("tweet") != null && getUrlParam("tweet").length > 0) {
         $('#url').val(getUrlParam("tweet"));
