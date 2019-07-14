@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 
-from manager import execute_event, celery
+from .manager import execute_event, celery
 
 app = Flask(__name__)
 
