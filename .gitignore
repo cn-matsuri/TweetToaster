@@ -104,3 +104,4 @@ venv.bak/
 .mypy_cache/
 Matsuri_translation/frontend/cache/
 celeryconfig.py
+.idea/
