@@ -54,6 +54,7 @@ class TweetProcess:
             $("#ancestors").css("margin","0");
             $("body").css("overflow","hidden");
             $('.follow-button').css('display','none');
+            $(".tweet").css("background-color","#fff");
             var timestamp = document.querySelector('.permalink-header .time > a > span').getAttribute('data-time-ms');
             var now = new Date(timestamp - 0);
             var year = now.getFullYear();
