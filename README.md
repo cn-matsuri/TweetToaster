@@ -1,17 +1,18 @@
 # 马自立自动烤肉机重制版
 
+## 简介
 这个烤肉机，其实是个推特嵌字机。  
 出现的初衷因该是，嵌字这件事儿，大家都爱不动了。  
 来回p图一样的东西，有些伤不起啊。  
 
 于是，为了解决重复性工作，工坊招了程序员，也终于搞出来了这个项目。  
 
-此项目主要由完成  
-[FzXiao]() [b站]()  
-[飞雪]() [b站]()  
-[鱼鱼]() [b站]()  
+此项目主要感谢以下贡献者  
+[FzXiao](https://github.com/fzxiao233) [b站](https://space.bilibili.com/2387011)  
+[飞雪](https://github.com/wudifeixue) [b站](http://space.bilibili.com/739848)  
+[鱼鱼](https://github.com/yuyuyzl) [b站](https://space.bilibili.com/1534590)  
 
-// 此处补截图
+![HowtoUse](https://raw.githubusercontent.com/cn-matsuri/matsuri_translation/master/tt_how_to_use.gif)
 
 # 部署文档
 
