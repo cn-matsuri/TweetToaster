@@ -113,3 +113,11 @@ td textarea {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
 }
+
+.autobanner {
+    display: none;
+    margin: auto;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}

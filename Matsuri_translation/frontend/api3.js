@@ -3,9 +3,13 @@ function submit_task() {
     url = url.replace("mobile.twitter.com", "twitter.com");
     //var translation = $('#translation').val().replace(/\r\n|\r|\n/g, '\\r');
     $('#progress').val("开始获取图像");
+
+    $("#autoprogress").text("开始获取图像");
     $('#url').css("display", "none");
     $('#progress').css("display", "");
-
+    $("#translatetbody").html("");
+    $("#screenshots").html("        <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
+        "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
 
     var jqxhr = $.ajax({
         url: "/api/tasks",
@@ -40,6 +44,8 @@ function fetch_img(task_id) {
                         if (event.lengthComputable) {
                             //console.log((event.loaded / event.total) * 100); // 进度
                             $('#progress').val("正在下载图片 (" + Math.round((event.loaded / event.total) * 100) + "%)");
+
+                            $("#autoprogress").text("正在下载图片 (" + Math.round((event.loaded / event.total) * 100) + "%)");
                         }
                     };
 
@@ -50,14 +56,32 @@ function fetch_img(task_id) {
                         $('#url').css("display", "");
                         $('#progress').css("display", "none");
                         clip_screenshot();
+                        if (defaultTranslate != null) {
+                            $("#transtxt0").val(defaultTranslate);
+                        }
                         refresh_trans_div();
+                        if (defaultTranslate != null) {
+                            downloadAsCanvas();
+
+                            $("#autoprogress").text("正在保存");
+                            setTimeout(function () {
+                                $("#autoprogress").text("结束");
+                            }, 1000)
+
+                            setTimeout(function () {
+                                window.location.href = "/";
+                            }, 3000)
+                        }
                     };
                     xhr.send();
-                    $.get('cache/' + data.result + '.txt', function (data, status) {
+                    setTimeout(function(){
+                        $.get('cache/' + data.result + '.txt', function (data, status) {
                         console.log(data);
                         show_translate(JSON.parse(data));
                         refresh_trans_div();
                     });
+                    },500);
+
                     clearInterval(event);
                 }
             },
@@ -70,11 +94,13 @@ function fetch_img(task_id) {
             dataType: 'json',
         });
         $('#progress').val("等待服务器响应，已尝试" + count + "次");
+        $("#autoprogress").text("等待服务器响应，已尝试" + count + "次");
     }, 100)
 }
 
 var tweetpos;
 var templatechosen = [];
+var defaultTranslate;
 
 function show_translate(data) {
     console.log(data);
@@ -168,15 +194,15 @@ function refresh_trans_div() {
         templates = [{name: "", content: template}];
     }
     //console.log(templates);
-    if (isMultiMode) $('.translatetd').addClass("multi"); else  $('.translatetd').removeClass("multi");
+    if (isMultiMode) $('.translatetd').addClass("multi"); else $('.translatetd').removeClass("multi");
     $('.dropdownmenuitems').html("");
     for (var i = 0; i < templates.length; i++) {
         $('.dropdownmenuitems').append('<button class="dropdown-item templatebutton" type="button">' + templates[i].name + '</button>')
     }
     $('.templatebutton').click(function () {
-        var i=$('.dropdownmenuitems').index($(this).parent());
+        var i = $('.dropdownmenuitems').index($(this).parent());
         templatechosen[i] = $(this).text().trim();
-        $("#translatediv"+i)[0].scrollIntoView();
+        $("#translatediv" + i)[0].scrollIntoView();
         refresh_trans_div();
     });
     for (var i = 0; i < tweetpos.length; i++) {
@@ -240,10 +266,10 @@ $(function () {
         '</div>')
     $("#translatetemp").val(localStorage.getItem("translatetemp"));
     $("#translatetemp").keyup(refresh_trans_div);
-    $(".screenshotwrapper").on("touchstart",function () {
+    $(".screenshotwrapper").on("touchstart", function () {
         $("body").addClass("overview");
     });
-    $(".settingswrapper").on("touchstart",function () {
+    $(".settingswrapper").on("touchstart", function () {
         $("body").removeClass("overview");
     });
 
@@ -251,7 +277,18 @@ $(function () {
     if (getUrlParam("tweet") != null && getUrlParam("tweet").length > 0) {
         $('#url').val(getUrlParam("tweet"));
         submit_task();
+        if (getUrlParam("translate") != null && getUrlParam("translate").length > 0) {
+            defaultTranslate = getUrlParam("translate");
+            var ss = "";
+            while (ss != defaultTranslate) {
+                ss = defaultTranslate;
+                defaultTranslate = defaultTranslate.replace("\\n", "\n");
+            }
+            $(".settingscontainer").hide();
+            $(".autobanner").show();
+        }
     }
+
 
 });
 

@@ -45,17 +45,30 @@ class TweetProcess:
         return filename
 
     def modify_tweet(self):
-        self.driver.execute_script(
-            f'''
+        if("/status/" in self.driver.current_url):
+            self.driver.execute_script(f'''
             $("body").html($(".PermalinkOverlay-content").html());
             $(".permalink-tweet").css("border-radius",0);
             $(".permalink").css("border",0);
             $(".permalink-container").css("width","640px");
+            ''')
+        else:
+            self.driver.execute_script(f'''
+            $("body").html($(".ProfileTimeline"));
+            $(".ProfileTimeline").css("width","640px");
+            $(".stream-item").css("border","0");
+            ''')
+        self.driver.execute_script(f'''
             $("#ancestors").css("margin","0");
             $("body").css("overflow","hidden");
             $('.follow-button').css('display','none');
             $(".tweet").css("background-color","#fff");
+            $(".tweet").css("padding-left","40px");
+            $(".tweet").css("padding-right","40px");
             $(".media-tags-container").remove();
+            ''')
+        if ("/status/" in self.driver.current_url):
+            self.driver.execute_script(f'''
             var timestamp = document.querySelector('.permalink-header .time > a > span').getAttribute('data-time-ms');
             var now = new Date(timestamp - 0);
             var year = now.getFullYear();
