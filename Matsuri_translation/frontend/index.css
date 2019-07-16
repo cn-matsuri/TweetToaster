@@ -58,6 +58,7 @@ td textarea {
     width: 100%;
     background-color: #fff;
     transition-duration: 300ms;
+    z-index: 10000;
 }
 
 @media (max-width: 1200px) {
@@ -112,4 +113,12 @@ td textarea {
 .multi .input-group textarea{
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
+}
+
+.autobanner {
+    display: none;
+    margin: auto;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
 }
