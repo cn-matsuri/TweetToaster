@@ -74,13 +74,12 @@ function fetch_img(task_id) {
                         }
                     };
                     xhr.send();
-                    setTimeout(function(){
-                        $.get('cache/' + data.result + '.txt', function (data, status) {
+
+                    $.get('cache/' + data.result + '.txt', function (data, status) {
                         console.log(data);
                         show_translate(JSON.parse(data));
                         refresh_trans_div();
                     });
-                    },500);
 
                     clearInterval(event);
                 }
