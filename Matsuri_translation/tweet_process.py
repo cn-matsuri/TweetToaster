@@ -1,7 +1,7 @@
 from datetime import datetime
 from os import mkdir
 from os.path import isdir
-
+import time
 from retrying import retry
 
 
@@ -25,6 +25,9 @@ class TweetProcess:
         filename = datetime.now().strftime("%Y%m%d%H%M%S")
         if not isdir('Matsuri_translation/frontend/cache'):
             mkdir('Matsuri_translation/frontend/cache')
+
+
+        #print(self.driver.find_element_by_css_selector('iframe').get_attribute('innerHTML'))
         self.driver.save_screenshot(
             f'Matsuri_translation/frontend/cache/{filename}.png')
         datafile = open(f'Matsuri_translation/frontend/cache/{filename}.txt', 'w',
@@ -46,17 +49,26 @@ class TweetProcess:
         return filename
 
     def modify_tweet(self):
+        self.driver.set_window_size(640, 2000)
         if("/status/" in self.driver.current_url):
             self.driver.execute_script(f'''
-            $("body").html($(".PermalinkOverlay-content").html());
+            //$("body").html($(".PermalinkOverlay-content").html());
+            $(".PermalinkOverlay-modal").removeClass("PermalinkOverlay-modal");
+            $(".PermalinkOverlay").css("overflow","hidden");
             $(".permalink-tweet").css("border-radius",0);
             $(".permalink").css("border",0);
             $(".permalink-container").css("width","640px");
             ''')
         else:
             self.driver.execute_script(f'''
-            $("body").html($(".ProfileTimeline"));
+            //$("body").html($(".ProfileTimeline"));
             $(".ProfileTimeline").css("width","640px");
+            $(".ProfileTimeline").css("position","absolute");
+            $(".ProfileTimeline").css("z-index","100000");
+            $(".ProfileTimeline").css("top",(0)+"px");
+            $(".ProfileTimeline").css("top",(-$(".ProfileTimeline").offset().top)+"px");
+            $(".ProfileTimeline").css("left",(0)+"px");
+            $(".ProfileTimeline").css("left",(-$(".ProfileTimeline").offset().left)+"px");
             $(".stream-item").css("border","0");
             $(".tweet").css("padding-left","40px");
             $(".tweet").css("padding-right","40px");
