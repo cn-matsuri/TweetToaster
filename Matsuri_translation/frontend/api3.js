@@ -10,9 +10,6 @@ function submit_task() {
     $("#translatetbody").html("");
     $("#screenshots").html("        <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
         "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
-    $("#screenshotclip" + 0).click(function () {
-            goto($(this)[0].id);
-        });
     var jqxhr = $.ajax({
         url: "/api/tasks",
         type: "post",
@@ -74,7 +71,7 @@ function fetch_img(task_id) {
                             $("#autoprogress").text("正在保存");
                             setTimeout(function () {
                                 $("#autoprogress").text("结束");
-                            }, 1000)
+                            }, 1000);
 
                             setTimeout(function () {
                                 window.location.href = "/";
@@ -151,6 +148,9 @@ function show_translate(data) {
 
 
 function clip_screenshot() {
+        $("#screenshotclip" + 0).click(function () {
+            goto($(this)[0].id);
+        });
     for (var i = 0; i < tweetpos.length; i++) {
         if (tweetpos[i].bottom > 2000) break;
         $("#screenshotclip" + i).css("height", tweetpos[i].bottom - (i == 0 ? 0 : tweetpos[i - 1].blockbottom));
