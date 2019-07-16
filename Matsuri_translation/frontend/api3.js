@@ -10,7 +10,9 @@ function submit_task() {
     $("#translatetbody").html("");
     $("#screenshots").html("        <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
         "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
-
+    $("#screenshotclip" + 0).click(function () {
+            goto($(this)[0].id);
+        });
     var jqxhr = $.ajax({
         url: "/api/tasks",
         type: "post",
@@ -38,6 +40,12 @@ function fetch_img(task_id) {
             success: function (data, status, xhr) {
                 locked = false;
                 if (data.state === "SUCCESS") {
+                    $.get('cache/' + data.result + '.txt', function (data, status) {
+                        console.log(data);
+                        show_translate(JSON.parse(data));
+                        refresh_trans_div();
+                    });
+
                     var xhr = new XMLHttpRequest();
                     xhr.open('GET', 'cache/' + data.result + '.png');
                     xhr.onprogress = function (event) {
@@ -75,11 +83,7 @@ function fetch_img(task_id) {
                     };
                     xhr.send();
 
-                    $.get('cache/' + data.result + '.txt', function (data, status) {
-                        console.log(data);
-                        show_translate(JSON.parse(data));
-                        refresh_trans_div();
-                    });
+
 
                     clearInterval(event);
                 }
@@ -186,6 +190,7 @@ function goto(id){
     }
     id=parseInt(id);
     if(id>=1000)id-=1000;
+    //console.log("goto called "+id);
     var oldurl=$('#url').val();
     $('#url').val("https://twitter.com"+tweetpos[id].path);
     if($('#url').val()!=oldurl)submit_task();
@@ -294,6 +299,7 @@ $(function () {
     $(".settingswrapper").on("touchstart", function () {
         $("body").removeClass("overview");
     });
+
     $("#url").keypress(function(event){
                 if(event.keyCode == 13){
                     submit_task();
