@@ -58,6 +58,7 @@ td textarea {
     width: 100%;
     background-color: #fff;
     transition-duration: 300ms;
+    z-index: 10000;
 }
 
 @media (max-width: 1200px) {

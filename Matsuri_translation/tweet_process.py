@@ -36,6 +36,7 @@ class TweetProcess:
                     top:$(obj).offset().top,
                     bottom:$(obj).offset().top+$(obj).height(),
                     text:$(obj).text().trim(),
+                    path:$(obj).parents(".tweet").attr("data-permalink-path"),
                     blockbottom:$(obj).parents(".permalink-tweet-container,.js-stream-item").offset().top+$(obj).parents(".permalink-tweet-container,.js-stream-item").height()
                 }
                 ls.push(item)

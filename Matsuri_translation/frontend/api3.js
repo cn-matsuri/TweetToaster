@@ -163,10 +163,33 @@ function clip_screenshot() {
         $("#screenshotclip" + (i + 1000)).css("background-position-y", -tweetpos[i].bottom);
         $("#screenshotclip" + (i + 1)).css("display", "none");
         $("#screenshotclip" + (i + 1000)).css("display", "none");
+        $("#screenshotclip" + (i + 1)).click(function () {
+            goto($(this)[0].id);
+        });
+        $("#screenshotclip" + (i + 1000)).click(function () {
+            goto($(this)[0].id);
+        });
 
 
         $("#screenshotclip" + i).after("<div class='screenshotclip' id='" + "translatediv" + i + "'></div>");
+
+        $("#translatediv" + i).click(function () {
+            goto($(this)[0].id);
+        });
     }
+}
+
+function goto(id){
+    var ss = "";
+    while (ss != id) {
+        ss = id;
+        id = id.replace(/[^0-9]/g, "");
+    }
+    id=parseInt(id);
+    if(id>=1000)id-=1000;
+    var oldurl=$('#url').val();
+    $('#url').val("https://twitter.com"+tweetpos[id].path);
+    if($('#url').val()!=oldurl)submit_task();
 }
 
 function refresh_trans_div() {
@@ -272,6 +295,11 @@ $(function () {
     $(".settingswrapper").on("touchstart", function () {
         $("body").removeClass("overview");
     });
+    $("#url").keypress(function(event){
+                if(event.keyCode == 13){
+                    submit_task();
+                }
+            });
 
 
     if (getUrlParam("tweet") != null && getUrlParam("tweet").length > 0) {
