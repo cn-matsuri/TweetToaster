@@ -58,14 +58,14 @@ class TweetProcess:
             $("body").html($(".ProfileTimeline"));
             $(".ProfileTimeline").css("width","640px");
             $(".stream-item").css("border","0");
+            $(".tweet").css("padding-left","40px");
+            $(".tweet").css("padding-right","40px");
             ''')
         self.driver.execute_script(f'''
             $("#ancestors").css("margin","0");
             $("body").css("overflow","hidden");
             $('.follow-button').css('display','none');
             $(".tweet").css("background-color","#fff");
-            $(".tweet").css("padding-left","40px");
-            $(".tweet").css("padding-right","40px");
             $(".media-tags-container").remove();
             ''')
         if ("/status/" in self.driver.current_url):
