@@ -175,8 +175,8 @@ function clip_screenshot() {
         });
 
         if(("https://twitter.com"+tweetpos[i].path)==$('#url').val())
-            $("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom-109);
-            $("#screenshotclip" + (i + 1000)).addClass("nolikes");
+            //$("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom-109);
+            //$("#screenshotclip" + (i + 1000)).addClass("nolikes");
             $("#screenshotclip" + (i + 1000)).click(function () {
                 if($(this).hasClass("nolikes")){
                     $(this).css("height", $(this).height()+109);
