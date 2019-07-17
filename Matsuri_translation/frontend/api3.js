@@ -1,6 +1,7 @@
 function submit_task() {
     var url = $('#url').val();
     url = url.replace("mobile.twitter.com", "twitter.com");
+    $("#url").val(url);
     //var translation = $('#translation').val().replace(/\r\n|\r|\n/g, '\\r');
     $('#progress').val("开始获取图像");
 
@@ -173,6 +174,19 @@ function clip_screenshot() {
             goto($(this)[0].id);
         });
 
+        if(("https://twitter.com"+tweetpos[i].path)==$('#url').val())
+            //$("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom-109);
+            //$("#screenshotclip" + (i + 1000)).addClass("nolikes");
+            $("#screenshotclip" + (i + 1000)).click(function () {
+                if($(this).hasClass("nolikes")){
+                    $(this).css("height", $(this).height()+109);
+                    $(this).removeClass("nolikes")
+                }else {
+
+                    $(this).css("height", $(this).height()-109);
+                    $(this).addClass("nolikes")
+                }
+            });
 
         $("#screenshotclip" + i).after("<div class='screenshotclip' id='" + "translatediv" + i + "'></div>");
 

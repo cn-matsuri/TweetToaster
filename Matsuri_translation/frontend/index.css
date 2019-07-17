@@ -2,7 +2,10 @@ td textarea {
     width: 100%;
     height: 30px;
 }
-
+.screenshotwrapper{
+        font-family: "Segoe UI",Arial,sans-serif;
+        letter-spacing: .01em;
+}
 
 .screenshotclip {
     width: 640px;
