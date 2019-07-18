@@ -19,7 +19,7 @@ class TweetProcess:
     @retry
     def scroll_page_to_tweet(self):
         self.driver.set_window_size(640, 2000)
-        self.driver.execute_script("$('body')[0].scrollIntoView()")
+        # self.driver.execute_script("$('body')[0].scrollIntoView()")
 
     def save_screenshots(self):
         filename = datetime.now().strftime("%Y%m%d%H%M%S")
