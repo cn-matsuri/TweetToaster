@@ -82,7 +82,6 @@ function fetch_img(task_id) {
                     xhr.send();
 
 
-
                     clearInterval(event);
                 }
             },
@@ -149,9 +148,9 @@ function show_translate(data) {
 
 
 function clip_screenshot() {
-        $("#screenshotclip" + 0).click(function () {
-            goto($(this)[0].id);
-        });
+    $("#screenshotclip" + 0).click(function () {
+        goto($(this)[0].id);
+    });
     for (var i = 0; i < tweetpos.length; i++) {
         if (tweetpos[i].bottom > 2000) break;
         $("#screenshotclip" + i).css("height", tweetpos[i].bottom - (i == 0 ? 0 : tweetpos[i - 1].blockbottom));
@@ -170,22 +169,23 @@ function clip_screenshot() {
         $("#screenshotclip" + (i + 1)).click(function () {
             goto($(this)[0].id);
         });
-        $("#screenshotclip" + (i + 1000)).click(function () {
-            goto($(this)[0].id);
-        });
 
-        if(("https://twitter.com"+tweetpos[i].path)==$('#url').val())
-            //$("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom-109);
-            //$("#screenshotclip" + (i + 1000)).addClass("nolikes");
+        if (("https://twitter.com" + tweetpos[i].path) == $('#url').val())
+        //$("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom-109);
+        //$("#screenshotclip" + (i + 1000)).addClass("nolikes");
             $("#screenshotclip" + (i + 1000)).click(function () {
-                if($(this).hasClass("nolikes")){
-                    $(this).css("height", $(this).height()+109);
+                if ($(this).hasClass("nolikes")) {
+                    $(this).css("height", $(this).height() + 109);
                     $(this).removeClass("nolikes")
-                }else {
+                } else {
 
-                    $(this).css("height", $(this).height()-109);
+                    $(this).css("height", $(this).height() - 109);
                     $(this).addClass("nolikes")
                 }
+            });
+        else
+            $("#screenshotclip" + (i + 1000)).click(function () {
+                goto($(this)[0].id);
             });
 
         $("#screenshotclip" + i).after("<div class='screenshotclip' id='" + "translatediv" + i + "'></div>");
@@ -196,18 +196,21 @@ function clip_screenshot() {
     }
 }
 
-function goto(id){
+function goto(id) {
     var ss = "";
     while (ss != id) {
         ss = id;
         id = id.replace(/[^0-9]/g, "");
     }
-    id=parseInt(id);
-    if(id>=1000)id-=1000;
+    id = parseInt(id);
+    if (id >= 1000) id -= 1000;
     //console.log("goto called "+id);
-    var oldurl=$('#url').val();
-    $('#url').val("https://twitter.com"+tweetpos[id].path);
-    if($('#url').val()!=oldurl)submit_task();
+    var oldurl = $('#url').val();
+    $('#url').val("https://twitter.com" + tweetpos[id].path);
+    if ($('#url').val() != oldurl) submit_task(); else {
+        $('#url').val(oldurl.replace(/\/status\/.*/, ""));
+        submit_task();
+    }
 }
 
 function refresh_trans_div() {
@@ -314,11 +317,11 @@ $(function () {
         $("body").removeClass("overview");
     });
 
-    $("#url").keypress(function(event){
-                if(event.keyCode == 13){
-                    submit_task();
-                }
-            });
+    $("#url").keypress(function (event) {
+        if (event.keyCode == 13) {
+            submit_task();
+        }
+    });
 
 
     if (getUrlParam("tweet") != null && getUrlParam("tweet").length > 0) {
