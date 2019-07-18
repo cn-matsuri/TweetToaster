@@ -49,15 +49,18 @@ class TweetProcess:
         return filename
 
     def modify_tweet(self):
+        # time.sleep(0.5)
         self.driver.set_window_size(640, 2000)
         if("/status/" in self.driver.current_url):
             self.driver.execute_script(f'''
             //$("body").html($(".PermalinkOverlay-content").html());
-            $(".PermalinkOverlay-modal").removeClass("PermalinkOverlay-modal");
+            //$(".PermalinkOverlay-modal").removeClass("PermalinkOverlay-modal");
+            $(".PermalinkOverlay-modal").attr("style","border-radius: 0;    min-height: 0;    margin-bottom: 0;    position: absolute;    top: 0 !important;    left: 0;    width: 640px;    margin-left: 0;");
             $(".PermalinkOverlay").css("overflow","hidden");
             $(".permalink-tweet").css("border-radius",0);
             $(".permalink").css("border",0);
             $(".permalink-container").css("width","640px");
+            $('.PermalinkOverlay-modal')[0].scrollIntoView()
             ''')
         else:
             self.driver.execute_script(f'''
