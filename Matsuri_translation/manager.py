@@ -17,8 +17,9 @@ def execute_event(event):
     try:
         processor = TweetProcess(driver)
         processor.open_page(event['url'])
+
         processor.modify_tweet()
-        processor.scroll_page_to_tweet()
+        processor.scroll_page_to_tweet(event['fast'])
         filename = processor.save_screenshots()
     finally:
         driver.close()

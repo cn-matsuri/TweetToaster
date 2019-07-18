@@ -12,7 +12,7 @@ app = Flask(__name__)
 def add_tasks():
     if request.json:
         task = {'url': request.json['url'],
-                'translation': request.json['translation']}
+                'fast': request.json['fast']}
         result = execute_event.delay(task)
         return jsonify({'task_id': result.id})
 
