@@ -1,6 +1,7 @@
 function submit_task() {
     var url = $('#url').val();
     url = url.replace("mobile.twitter.com", "twitter.com");
+    url = url.replace(/\?.*/, "");
     $("#url").val(url);
     //var translation = $('#translation').val().replace(/\r\n|\r|\n/g, '\\r');
     $('#progress').val("开始获取图像");
