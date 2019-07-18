@@ -1,4 +1,4 @@
-function submit_task() {
+function submit_task(isFast) {
     var url = $('#url').val();
     url = url.replace("mobile.twitter.com", "twitter.com");
     url = url.replace(/\?.*/, "");
@@ -17,7 +17,7 @@ function submit_task() {
         type: "post",
         data: JSON.stringify({
             "url": url,
-            "translation": ""
+            "fast": isFast || false
         }),
         contentType: "application/json; charset=utf-8",
         dataType: "json",
@@ -305,6 +305,9 @@ $(function () {
     $('#button-submit').click(function () {
         submit_task();
     });
+    $('#button-submit-fast').click(function () {
+        submit_task(true);
+    });
     if (localStorage.getItem("translatetemp") == null) localStorage.setItem("translatetemp", '<div style="margin:10px 38px">\n' +
         '<img src="img/gongfang_official.png" height="38">\n' +
         '<div style="font-size:27px;">{T}</div>\n' +
@@ -320,14 +323,14 @@ $(function () {
 
     $("#url").keypress(function (event) {
         if (event.keyCode == 13) {
-            submit_task();
+            submit_task(true);
         }
     });
 
 
     if (getUrlParam("tweet") != null && getUrlParam("tweet").length > 0) {
         $('#url').val(getUrlParam("tweet"));
-        submit_task();
+        submit_task(true);
         if (getUrlParam("translate") != null && getUrlParam("translate").length > 0) {
             defaultTranslate = getUrlParam("translate");
             var ss = "";

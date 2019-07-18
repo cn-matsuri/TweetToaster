@@ -17,8 +17,13 @@ class TweetProcess:
         self.driver.get(url)
 
     @retry
-    def scroll_page_to_tweet(self):
-        self.driver.set_window_size(640, 2000)
+    def scroll_page_to_tweet(self, fast):
+        if fast:
+            self.driver.set_window_size(640, self.driver.execute_script('''
+            return $('.js-tweet-text-container').first().parents(".permalink-tweet-container,.js-stream-item").offset().top+$('.js-tweet-text-container').first().parents(".permalink-tweet-container,.js-stream-item").height();
+            '''))
+        else:
+            self.driver.set_window_size(640, 2000)
         # self.driver.execute_script("$('body')[0].scrollIntoView()")
 
     def save_screenshots(self):
