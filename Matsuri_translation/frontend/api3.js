@@ -198,11 +198,8 @@ function clip_screenshot() {
 }
 
 function goto(id) {
-    var ss = "";
-    while (ss != id) {
-        ss = id;
-        id = id.replace(/[^0-9]/g, "");
-    }
+
+    id = id.replace(/[^0-9]/g, "");
     id = parseInt(id);
     if (id >= 1000) id -= 1000;
     //console.log("goto called "+id);
@@ -266,7 +263,8 @@ function refresh_trans_div() {
         $("#translatediv" + i).html("");
         if ($("#transtxt" + i).val() != "") {
             var transtxt = $("#transtxt" + i).val();
-            transtxt = transtxt.split("\n").join("<br>");
+            transtxt = transtxt.replace(/\n/g, "<br>");
+            transtxt = transtxt.replace(/ /g, "&nbsp;");
             var templateusing = template;
             if (isMultiMode) {
                 templateusing = templates[0].content;
@@ -333,11 +331,9 @@ $(function () {
         submit_task(true);
         if (getUrlParam("translate") != null && getUrlParam("translate").length > 0) {
             defaultTranslate = getUrlParam("translate");
-            var ss = "";
-            while (ss != defaultTranslate) {
-                ss = defaultTranslate;
-                defaultTranslate = defaultTranslate.replace("\\n", "\n");
-            }
+
+            defaultTranslate = defaultTranslate.replace(/\\n/g, "\n");
+
             $(".settingscontainer").hide();
             $(".autobanner").show();
         }
