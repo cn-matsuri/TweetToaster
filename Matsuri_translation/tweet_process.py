@@ -39,6 +39,7 @@ class TweetProcess:
                         encoding="utf-8")
         print(self.driver.execute_script('''
             var ls=[];
+            
             $('.js-tweet-text-container').each(function(i,obj){
                 var item={
                     top:$(obj).offset().top,
@@ -48,6 +49,10 @@ class TweetProcess:
                     blockbottom:$(obj).parents(".permalink-tweet-container,.js-stream-item").offset().top+$(obj).parents(".permalink-tweet-container,.js-stream-item").height()
                 }
                 ls.push(item)
+            });
+            $(".Emoji--forText").each(function(i,obj){$(obj).replaceWith($(obj).attr("alt"))});
+            $('.js-tweet-text-container').each(function(i,obj){
+                ls[i].text=$(obj).text().trim();
             });
             return JSON.stringify(ls);
         '''), file=datafile)
