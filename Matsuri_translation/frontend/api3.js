@@ -1,4 +1,4 @@
-twemoji.base = "/img/twemoji/";
+//twemoji.base = "/img/twemoji/";
 var url;
 function submit_task(isFast) {
     url = $('#url').val();
@@ -352,7 +352,7 @@ $(function () {
 
 function downloadAsCanvas() {
     $('body')[0].scrollIntoView();
-    html2canvas(document.querySelector("#screenshots")).then(canvas => {
+    html2canvas(document.querySelector("#screenshots"), {useCORS: true}).then(canvas => {
         //createAndDownloadFile("twitterImg" + new Date().getTime() + ".png", canvas.toDataURL("image/png"));
         canvas.toBlob(function (blob) {
             saveAs(blob, "twitterImg" + new Date().getTime() + ".png");
