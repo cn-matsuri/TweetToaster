@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 sudo echo "$USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers
-sudo apt install python python-pip
+sudo apt install python python-pip git
 pip install fabric
+git clone https://github.com/cn-matsuri/matsuri_translation
+cd matsuri_translation
 python deploy.py
 domain = ''
 echo 'Input your domain to configured nginx, or you shall edit /etc/nginx/conf.d/1-matsuri_translation.conf'
