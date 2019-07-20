@@ -1,5 +1,7 @@
+twemoji.base = "/img/twemoji/";
+var url;
 function submit_task(isFast) {
-    var url = $('#url').val();
+    url = $('#url').val();
     url = url.replace("mobile.twitter.com", "twitter.com");
     url = url.replace(/\?.*/, "");
     $("#url").val(url);
@@ -110,11 +112,14 @@ function show_translate(data) {
     $("#translatetbody").html("");
     for (var i = 0; i < tweetpos.length; i++) {
         templatechosen.push("");
+        var str = tweetpos[i].text;
+        str = str.replace(/\n/g, "<br>");
+        str = str.replace(/ /g, "&nbsp;");
         $("#translatetbody").append("<tr>\n" +
             "      <th scope=\"row\">" +
             "<input type=\'checkbox\' " + (i == 0 ? "checked" : "") + " id=\'show" + i + "\'>" +
             "</th>\n" +
-            "      <td class=\'originaltext\'>" + tweetpos[i].text + "</td>\n" +
+            "      <td class=\'originaltext\'>" + str + "</td>\n" +
             "    <td><div class=\'translatetd\' id=\'translatetd" + i + "\' " + (i > 0 ? "style='display:none'" : "") + " ><div class=\'input-group\'>" +
             "<textarea id=\'transtxt" + i + "\' class=\'form-control\' " + (i == 0 ? "style='height:100px'" : "") + "></textarea></div>\n" +
             "      <div class=\"dropdown templatedropdown\">\n" +
@@ -271,9 +276,12 @@ function refresh_trans_div() {
                 for (var j = 0; j < templates.length; j++)
                     if (templates[j].name == templatechosen[i]) templateusing = templates[j].content;
             }
-            $("#translatediv" + i).html(templateusing.replace("{T}", transtxt));
+            $("#translatediv" + i).html(twemoji.parse(templateusing.replace("{T}", transtxt)));
         }
     }
+    // $("#screenshots img.emoji").each(function(i,obj){
+    //     $(obj).replaceWith("<div class='emoji' style='background-image: url(\""+$(obj).attr("src")+"\")'></div>")
+    // })
 
 
 }
