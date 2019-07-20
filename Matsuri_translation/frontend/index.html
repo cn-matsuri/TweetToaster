@@ -1,6 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-74076320-2"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+
+        gtag('config', 'UA-74076320-2');
+    </script>
+    <!-- Google Tag Manager -->
+    <script>(function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            'gtm.start':
+                new Date().getTime(), event: 'gtm.js'
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : '';
+        j.async = true;
+        j.src =
+            'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-NQ3MX77');</script>
+    <!-- End Google Tag Manager -->
     <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
     <script>window.devicePixelRatio = 1</script>
     <meta charset="UTF-8">
@@ -25,7 +53,12 @@
 </head>
 
 <body>
-
+<!-- Google Tag Manager (noscript) -->
+<noscript>
+    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NQ3MX77"
+            height="0" width="0" style="display:none;visibility:hidden"></iframe>
+</noscript>
+<!-- End Google Tag Manager (noscript) -->
 <!--    <div class="container">-->
 <!--        <h1 style="text-align: center">夏色祭工坊：烤肉机DEV</h1>-->
 <!--        <div class="row">-->
@@ -96,7 +129,9 @@
             </table>
         </div>
         <div class="btn-group mb-3" style="width: 100%;">
-            <button class="btn btn-outline-primary" style="flex: 5 1 auto;" onclick="downloadAsCanvas()">下载图片</button>
+            <button class="btn btn-outline-primary" id="btnDownload" style="flex: 5 1 auto;"
+                    onclick="downloadAsCanvas()">下载图片
+            </button>
             <button class="btn btn-outline-secondary" id="btnToggleTemplate">翻译模板</button>
         </div>
         <div class="input-group mb-3">

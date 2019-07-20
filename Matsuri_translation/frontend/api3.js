@@ -1,7 +1,7 @@
 twemoji.base = "/img/twemoji/";
-
+var url;
 function submit_task(isFast) {
-    var url = $('#url').val();
+    url = $('#url').val();
     url = url.replace("mobile.twitter.com", "twitter.com");
     url = url.replace(/\?.*/, "");
     $("#url").val(url);
