@@ -58,6 +58,19 @@ class TweetProcess:
         '''), file=datafile)
         return filename
 
+    def save_screenshots_auto(self):
+        filename = datetime.now().strftime("%Y%m%d%H%M%S")
+        if not isdir('Matsuri_translation/frontend/cache'):
+            mkdir('Matsuri_translation/frontend/cache')
+        self.driver.set_window_size(640, self.driver.execute_script('''
+                    return $("canvas").first().height();
+                    '''))
+        # print(self.driver.find_element_by_css_selector('iframe').get_attribute('innerHTML'))
+        self.driver.save_screenshot(
+            f'Matsuri_translation/frontend/cache/{filename}.png')
+
+        return filename
+
     def modify_tweet(self):
         # time.sleep(0.5)
         self.driver.set_window_size(640, 2000)

@@ -1,7 +1,12 @@
 from celery import Celery
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import Options
-
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+import time
+from .celeryconfig import self_url
+from urllib import parse
 from .tweet_process import TweetProcess
 
 celery = Celery('api')
@@ -23,4 +28,28 @@ def execute_event(event):
         filename = processor.save_screenshots()
     finally:
         driver.close()
+    return filename
+
+
+@celery.task()
+def execute_event_auto(event):
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
+    driver_frontend = webdriver.Chrome(options=chrome_options)
+    try:
+        processor = TweetProcess(driver_frontend)
+        param = {
+            'tweet': event['tweet'],
+            'template': event['template'],
+            'translate': event['translate'],
+            'out': 1
+        }
+        processor.open_page(self_url + "?" + parse.urlencode(param).replace("+", "%20"))
+        # time.sleep(20)
+        WebDriverWait(driver_frontend, 20, 0.5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'canvas')))
+        filename = processor.save_screenshots_auto()
+    finally:
+        driver_frontend.close()
     return filename
