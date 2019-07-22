@@ -27,7 +27,8 @@ def execute_event(event):
         processor.scroll_page_to_tweet(event['fast'])
         filename = processor.save_screenshots()
     finally:
-        driver.close()
+        # time.sleep(5)
+        driver.quit()
     return filename
 
 
@@ -47,9 +48,14 @@ def execute_event_auto(event):
         }
         processor.open_page(self_url + "?" + parse.urlencode(param).replace("+", "%20"))
         # time.sleep(20)
-        WebDriverWait(driver_frontend, 20, 0.5).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'canvas')))
-        filename = processor.save_screenshots_auto()
+        try:
+            WebDriverWait(driver_frontend, 60, 0.5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'canvas')))
+        except:
+            0 == 0
+        finally:
+            filename = processor.save_screenshots_auto()
     finally:
-        driver_frontend.close()
+        # time.sleep(5)
+        driver_frontend.quit()
     return filename

@@ -37,7 +37,7 @@ class TweetProcess:
             f'Matsuri_translation/frontend/cache/{filename}.png')
         datafile = open(f'Matsuri_translation/frontend/cache/{filename}.txt', 'w',
                         encoding="utf-8")
-        print(self.driver.execute_script('''
+        clipinfo = self.driver.execute_script('''
             var ls=[];
             
             $('.js-tweet-text-container').each(function(i,obj){
@@ -55,15 +55,19 @@ class TweetProcess:
                 ls[i].text=$(obj).text().trim();
             });
             return JSON.stringify(ls);
-        '''), file=datafile)
-        return filename
+        ''')
+        return filename + "|" + clipinfo
 
     def save_screenshots_auto(self):
         filename = datetime.now().strftime("%Y%m%d%H%M%S")
         if not isdir('Matsuri_translation/frontend/cache'):
             mkdir('Matsuri_translation/frontend/cache')
-        self.driver.set_window_size(640, self.driver.execute_script('''
-                    return $("canvas").first().height();
+        self.driver.set_window_size(self.driver.execute_script('''
+                
+                    return $("canvas").first().height()==null?1920:640;
+                    '''), self.driver.execute_script('''
+                
+                    return $("canvas").first().height()==null?2000:$("canvas").first().height();
                     '''))
         # print(self.driver.find_element_by_css_selector('iframe').get_attribute('innerHTML'))
         self.driver.save_screenshot(

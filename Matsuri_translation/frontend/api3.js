@@ -41,14 +41,16 @@ function fetch_img(task_id) {
             success: function (data, status, xhr) {
                 locked = false;
                 if (data.state === "SUCCESS") {
-                    $.get('cache/' + data.result + '.txt', function (data, status) {
-                        console.log(data);
-                        show_translate(JSON.parse(data));
-                        refresh_trans_div();
-                    });
+                    var filename = data.result.substr(0, data.result.indexOf("|"));
+                    var clipinfo = data.result.substr(data.result.indexOf("|") + 1);
+
+                    console.log(clipinfo);
+                    show_translate(JSON.parse(clipinfo));
+                    refresh_trans_div();
+
 
                     var xhr = new XMLHttpRequest();
-                    xhr.open('GET', 'cache/' + data.result + '.png');
+                    xhr.open('GET', 'cache/' + filename + '.png');
                     xhr.onprogress = function (event) {
                         if (event.lengthComputable) {
                             //console.log((event.loaded / event.total) * 100); // 进度
@@ -61,7 +63,7 @@ function fetch_img(task_id) {
                     xhr.onload = function (e) {
                         $("#screenshots").html("            <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
                             "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
-                        $("#screenshotclip0").css("background-image", 'url("cache/' + data.result + '.png")');
+                        $("#screenshotclip0").css("background-image", 'url("cache/' + filename + '.png")');
                         $('#url').css("display", "");
                         $('#progress').css("display", "none");
                         clip_screenshot();
