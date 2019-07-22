@@ -1,4 +1,4 @@
-//twemoji.base = "/img/twemoji/";
+twemoji.base = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/";
 var url;
 function submit_task(isFast) {
     url = $('#url').val();
