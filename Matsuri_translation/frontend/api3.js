@@ -117,7 +117,7 @@ function show_translate(data) {
         templatechosen.push("");
         var str = tweetpos[i].text;
         str = str.replace(/\n/g, "<br>");
-        str = str.replace(/ /g, "&nbsp;");
+        str = str.replace(/  /g, "&nbsp; ");
         $("#translatetbody").append("<tr>\n" +
             "      <th scope=\"row\">" +
             "<input type=\'checkbox\' " + (i == 0 ? "checked" : "") + " id=\'show" + i + "\'>" +
@@ -271,8 +271,17 @@ function refresh_trans_div() {
         $("#translatediv" + i).html("");
         if ($("#transtxt" + i).val() != "") {
             var transtxt = $("#transtxt" + i).val();
-            transtxt = transtxt.replace(/\n/g, "<br>");
-            transtxt = transtxt.replace(/ /g, "&nbsp;");
+
+
+            transtxt = transtxt.replace(/https?:\/\/([^ \n]+)/g, function (word) {
+                console.log(word);
+                return "<span class='link'>" + (
+                    word.replace(/https?:\/\//g, "").length > 25 ? (word.replace(/https?:\/\//g, "").substr(0, 25) + "...") : (word.replace(/https?:\/\//g, ""))
+                ) + "</span>"
+            })
+                .replace(/(#[^1234567890 \n][^ \n]*)/g, "<span class='link'>$1</span>")
+                .replace(/\n/g, "<br>")
+                .replace(/  /g, "&nbsp; ");
             var templateusing = template;
             if (isMultiMode) {
                 templateusing = templates[0].content;
