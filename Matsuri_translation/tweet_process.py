@@ -39,7 +39,6 @@ class TweetProcess:
                         encoding="utf-8")
         clipinfo = self.driver.execute_script('''
             var ls=[];
-            
             $('.js-tweet-text-container').each(function(i,obj){
                 var item={
                     top:$(obj).offset().top,
@@ -50,6 +49,7 @@ class TweetProcess:
                 }
                 ls.push(item)
             });
+            $(".tco-ellipsis").remove();
             $(".Emoji--forText").each(function(i,obj){$(obj).replaceWith($(obj).attr("alt"))});
             $('.js-tweet-text-container').each(function(i,obj){
                 ls[i].text=$(obj).text().trim();
