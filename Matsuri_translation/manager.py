@@ -32,7 +32,7 @@ def execute_event(event):
     return filename
 
 
-@celery.task()
+@celery.task(time_limit=300)
 def execute_event_auto(event):
     chrome_options = Options()
     chrome_options.add_argument("--headless")

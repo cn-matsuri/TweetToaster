@@ -117,7 +117,7 @@ function show_translate(data) {
         templatechosen.push("");
         var str = tweetpos[i].text;
         str = str.replace(/\n/g, "<br>");
-        str = str.replace(/ /g, "&nbsp;");
+        str = str.replace(/  /g, "&nbsp; ");
         $("#translatetbody").append("<tr>\n" +
             "      <th scope=\"row\">" +
             "<input type=\'checkbox\' " + (i == 0 ? "checked" : "") + " id=\'show" + i + "\'>" +
@@ -272,7 +272,7 @@ function refresh_trans_div() {
         if ($("#transtxt" + i).val() != "") {
             var transtxt = $("#transtxt" + i).val();
             transtxt = transtxt.replace(/\n/g, "<br>");
-            transtxt = transtxt.replace(/ /g, "&nbsp;");
+            transtxt = transtxt.replace(/  /g, "&nbsp; ");
             var templateusing = template;
             if (isMultiMode) {
                 templateusing = templates[0].content;
