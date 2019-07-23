@@ -1,1 +1,1 @@
-celery -A Matsuri_translation.api.celery worker --loglevel info
+celery -A Matsuri_translation.api.celery worker --loglevel info --concurrency=4

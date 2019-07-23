@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 
-from .manager import execute_event, celery
+from .manager import execute_event, celery, execute_event_auto
 
 app = Flask(__name__)
 
@@ -11,9 +11,16 @@ app = Flask(__name__)
 @app.route('/api/tasks', methods=['POST'])
 def add_tasks():
     if request.json:
-        task = {'url': request.json['url'],
-                'fast': request.json['fast']}
+        task = request.json
         result = execute_event.delay(task)
+        return jsonify({'task_id': result.id})
+
+
+@app.route('/api/auto', methods=['POST'])
+def add_auto():
+    if request.json:
+        task = request.json
+        result = execute_event_auto.delay(task)
         return jsonify({'task_id': result.id})
 
 

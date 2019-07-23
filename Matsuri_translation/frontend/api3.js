@@ -1,4 +1,4 @@
-//twemoji.base = "/img/twemoji/";
+twemoji.base = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/";
 var url;
 function submit_task(isFast) {
     url = $('#url').val();
@@ -41,14 +41,16 @@ function fetch_img(task_id) {
             success: function (data, status, xhr) {
                 locked = false;
                 if (data.state === "SUCCESS") {
-                    $.get('cache/' + data.result + '.txt', function (data, status) {
-                        console.log(data);
-                        show_translate(JSON.parse(data));
-                        refresh_trans_div();
-                    });
+                    var filename = data.result.substr(0, data.result.indexOf("|"));
+                    var clipinfo = data.result.substr(data.result.indexOf("|") + 1);
+
+                    console.log(clipinfo);
+                    show_translate(JSON.parse(clipinfo));
+                    refresh_trans_div();
+
 
                     var xhr = new XMLHttpRequest();
-                    xhr.open('GET', 'cache/' + data.result + '.png');
+                    xhr.open('GET', 'cache/' + filename + '.png');
                     xhr.onprogress = function (event) {
                         if (event.lengthComputable) {
                             //console.log((event.loaded / event.total) * 100); // 进度
@@ -61,7 +63,7 @@ function fetch_img(task_id) {
                     xhr.onload = function (e) {
                         $("#screenshots").html("            <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
                             "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
-                        $("#screenshotclip0").css("background-image", 'url("cache/' + data.result + '.png")');
+                        $("#screenshotclip0").css("background-image", 'url("cache/' + filename + '.png")');
                         $('#url').css("display", "");
                         $('#progress').css("display", "none");
                         clip_screenshot();
@@ -71,15 +73,16 @@ function fetch_img(task_id) {
                         refresh_trans_div();
                         if (defaultTranslate != null) {
                             downloadAsCanvas();
+                            if (getUrlParam("out") == null) {
+                                $("#autoprogress").text("正在保存");
+                                setTimeout(function () {
+                                    $("#autoprogress").text("结束");
+                                }, 1000);
 
-                            $("#autoprogress").text("正在保存");
-                            setTimeout(function () {
-                                $("#autoprogress").text("结束");
-                            }, 1000);
-
-                            setTimeout(function () {
-                                window.location.href = "/";
-                            }, 3000)
+                                setTimeout(function () {
+                                    window.location.href = "/";
+                                }, 3000)
+                            }
                         }
                     };
                     xhr.send();
@@ -298,7 +301,7 @@ function getUrlParam(k) {
 
 $(function () {
 
-    if (getUrlParam("template") != null && getUrlParam("template").length > 0) {
+    if (getUrlParam("template") != null && getUrlParam("template").length > 0 && getUrlParam("out") == null) {
         $.get(getUrlParam("template"), function (data, status) {
             console.log(data);
             if (confirm("将要用链接的内容替代现有的翻译模板，确认覆盖？")) localStorage.setItem("translatetemp", data);
@@ -335,6 +338,14 @@ $(function () {
 
 
     if (getUrlParam("tweet") != null && getUrlParam("tweet").length > 0) {
+        $.ajaxSettings.async = false;
+        if (getUrlParam("template") != null && getUrlParam("template").length > 0) {
+            $.get(getUrlParam("template"), function (data, status) {
+                localStorage.setItem("translatetemp", data);
+                $("#translatetemp").val(localStorage.getItem("translatetemp"));
+            });
+        }
+        $.ajaxSettings.async = true;
         $('#url').val(getUrlParam("tweet"));
         submit_task(true);
         if (getUrlParam("translate") != null && getUrlParam("translate").length > 0) {
@@ -345,6 +356,7 @@ $(function () {
             $(".settingscontainer").hide();
             $(".autobanner").show();
         }
+
     }
 
 
@@ -354,8 +366,14 @@ function downloadAsCanvas() {
     $('body')[0].scrollIntoView();
     html2canvas(document.querySelector("#screenshots"), {useCORS: true}).then(canvas => {
         //createAndDownloadFile("twitterImg" + new Date().getTime() + ".png", canvas.toDataURL("image/png"));
-        canvas.toBlob(function (blob) {
-            saveAs(blob, "twitterImg" + new Date().getTime() + ".png");
-        });
+        if (getUrlParam("out") == null) {
+            canvas.toBlob(function (blob) {
+                saveAs(blob, "twitterImg" + new Date().getTime() + ".png");
+
+            });
+        } else {
+            $("body>*").hide();
+            $("body").prepend(canvas);
+        }
     });
 }
