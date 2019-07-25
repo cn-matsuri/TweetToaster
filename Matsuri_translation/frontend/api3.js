@@ -279,7 +279,8 @@ function refresh_trans_div() {
                     word.replace(/https?:\/\//g, "").length > 25 ? (word.replace(/https?:\/\//g, "").substr(0, 25) + "...") : (word.replace(/https?:\/\//g, ""))
                 ) + "</span>"
             })
-                .replace(/(#[^1234567890 \n][^ \n]*)/g, "<span class='link'>$1</span>")
+                .replace(/(^#[^ \n]*[^1234567890 \n][^ \n]*|\n#[^ \n]*[^1234567890 \n][^ \n]*| #[^ \n]*[^1234567890 \n][^ \n]*)/g, "<span class='link'>$1</span>")
+                .replace(/(^@[^ \n]+|\n@[^ \n]+| @[^ \n]+)/g, "<span class='link'>$1</span>")
                 .replace(/\n/g, "<br>")
                 .replace(/  /g, "&nbsp; ");
             var templateusing = template;
