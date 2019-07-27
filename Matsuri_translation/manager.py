@@ -13,7 +13,7 @@ celery = Celery('api')
 celery.config_from_object('Matsuri_translation.celeryconfig')
 
 
-@celery.task()
+@celery.task(time_limit=300)
 def execute_event(event):
     chrome_options = Options()
     chrome_options.add_argument("--headless")

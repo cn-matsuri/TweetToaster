@@ -64,6 +64,7 @@ function fetch_img(task_id) {
                         $("#screenshots").html("            <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
                             "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
                         $("#screenshotclip0").css("background-image", 'url("cache/' + filename + '.png")');
+
                         $('#url').css("display", "");
                         $('#progress').css("display", "none");
                         clip_screenshot();
@@ -155,13 +156,12 @@ function show_translate(data) {
     })
 }
 
-
 function clip_screenshot() {
     $("#screenshotclip" + 0).click(function () {
         goto($(this)[0].id);
     });
+
     for (var i = 0; i < tweetpos.length; i++) {
-        if (tweetpos[i].bottom > 2000) break;
         $("#screenshotclip" + i).css("height", tweetpos[i].bottom - (i == 0 ? 0 : tweetpos[i - 1].blockbottom));
         $("#screenshotclip" + i).after("<div class='screenshotclip' id='" + "screenshotclip" + (i + 1) + "'></div>");
         $("#screenshotclip" + i).after("<div class='screenshotclip' id='" + "screenshotclip" + (i + 1000) + "'></div>");
@@ -169,7 +169,7 @@ function clip_screenshot() {
         $("#screenshotclip" + (i + 1000)).css("background-image", $("#screenshotclip" + i).css("background-image"));
         $("#screenshotclip" + (i + 1)).css("width", $("#screenshotclip" + i).css("width"));
         $("#screenshotclip" + (i + 1000)).css("width", $("#screenshotclip" + i).css("width"));
-        $("#screenshotclip" + (i + 1)).css("height", 2000 - tweetpos[i].blockbottom);
+        $("#screenshotclip" + (i + 1)).css("height", -tweetpos[i].blockbottom);
         $("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom);
         $("#screenshotclip" + (i + 1)).css("background-position-y", -tweetpos[i].blockbottom);
         $("#screenshotclip" + (i + 1000)).css("background-position-y", -tweetpos[i].bottom);
