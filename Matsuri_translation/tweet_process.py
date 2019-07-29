@@ -12,9 +12,14 @@ class TweetProcess:
         # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
         # self.driver = webdriver.Chrome(options=chrome_options)
         self.driver = driver
+        self.afterHeadlessInstance = int(round(time.time() * 1000))
+        self.beforeOpenPage = 0
+        self.afterOpenPage = 0
 
     def open_page(self, url):
+        self.beforeOpenPage = int(round(time.time() * 1000))
         self.driver.get(url)
+        self.afterOpenPage = int(round(time.time() * 1000))
 
     @retry
     def scroll_page_to_tweet(self, fast):
@@ -65,7 +70,10 @@ class TweetProcess:
             mkdir('Matsuri_translation/frontend/cache')
         datafile = open(f'Matsuri_translation/frontend/cache/{filename}.txt', 'w',
                         encoding="utf-8")
-        datafile.write(self.driver.execute_script('performanceDataOffset={};performanceData.eventStart=' + str(
+        datafile.write(self.driver.execute_script('performanceData.afterHeadlessInstance=' + str(
+            self.afterHeadlessInstance) + ';' + 'performanceData.beforeOpenPage=' + str(
+            self.beforeOpenPage) + ';' + 'performanceData.afterOpenPage=' + str(
+            self.afterOpenPage) + ';' + 'performanceDataOffset={};performanceData.eventStart=' + str(
             eventStartTime) + '; for(var key in performanceData)performanceDataOffset[key]=performanceData[key]-performanceData.eventStart; return JSON.stringify(performanceDataOffset);'
                                                   ))
         datafile.close()
