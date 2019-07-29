@@ -34,7 +34,7 @@ class TweetProcess:
         # self.driver.execute_script("$('body')[0].scrollIntoView()")
 
     def save_screenshots(self):
-        filename = datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = str(int(round(time.time() * 1000)))
         if not isdir('Matsuri_translation/frontend/cache'):
             mkdir('Matsuri_translation/frontend/cache')
 
@@ -65,7 +65,7 @@ class TweetProcess:
         return filename + "|" + clipinfo
 
     def save_screenshots_auto(self, eventStartTime):
-        filename = datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = str(int(round(time.time() * 1000))) + "a"
         if not isdir('Matsuri_translation/frontend/cache'):
             mkdir('Matsuri_translation/frontend/cache')
         datafile = open(f'Matsuri_translation/frontend/cache/{filename}.txt', 'w',
