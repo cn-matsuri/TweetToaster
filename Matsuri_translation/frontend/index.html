@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <script>
+        var performanceData = {};
+        performanceData.pageHeadTop = new Date().getTime();
+    </script>
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-74076320-2"></script>
     <script>
@@ -50,6 +54,9 @@
     <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
     <script src="api3.js"></script>
     <link rel="stylesheet" href="index.css">
+    <script>
+        performanceData.pageHeadBottom = new Date().getTime();
+    </script>
 </head>
 
 <body>
@@ -124,6 +131,8 @@
 
 </div>
 
-
+<script>
+    performanceData.pageBodyBottom = new Date().getTime();
+</script>
 </body>
 </html>
