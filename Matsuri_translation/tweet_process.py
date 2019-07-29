@@ -23,7 +23,9 @@ class TweetProcess:
             return $('.js-tweet-text-container').first().parents(".permalink-tweet-container,.js-stream-item").offset().top+$('.js-tweet-text-container').first().parents(".permalink-tweet-container,.js-stream-item").height();
             '''))
         else:
-            self.driver.set_window_size(640, 2000)
+            self.driver.set_window_size(640, self.driver.execute_script('''
+            return $('.js-tweet-text-container').last().parents(".permalink-tweet-container,.js-stream-item").offset().top+$('.js-tweet-text-container').last().parents(".permalink-tweet-container,.js-stream-item").height();
+            '''))
         # self.driver.execute_script("$('body')[0].scrollIntoView()")
 
     def save_screenshots(self):
@@ -35,8 +37,7 @@ class TweetProcess:
         #print(self.driver.find_element_by_css_selector('iframe').get_attribute('innerHTML'))
         self.driver.save_screenshot(
             f'Matsuri_translation/frontend/cache/{filename}.png')
-        datafile = open(f'Matsuri_translation/frontend/cache/{filename}.txt', 'w',
-                        encoding="utf-8")
+
         clipinfo = self.driver.execute_script('''
             var ls=[];
             $('.js-tweet-text-container').each(function(i,obj){
@@ -58,10 +59,16 @@ class TweetProcess:
         ''')
         return filename + "|" + clipinfo
 
-    def save_screenshots_auto(self):
+    def save_screenshots_auto(self, eventStartTime):
         filename = datetime.now().strftime("%Y%m%d%H%M%S")
         if not isdir('Matsuri_translation/frontend/cache'):
             mkdir('Matsuri_translation/frontend/cache')
+        datafile = open(f'Matsuri_translation/frontend/cache/{filename}.txt', 'w',
+                        encoding="utf-8")
+        datafile.write(self.driver.execute_script('performanceDataOffset={};performanceData.eventStart=' + str(
+            eventStartTime) + '; for(var key in performanceData)performanceDataOffset[key]=performanceData[key]-performanceData.eventStart; return JSON.stringify(performanceDataOffset);'
+                                                  ))
+        datafile.close()
         self.driver.set_window_size(self.driver.execute_script('''
                 
                     return $("canvas").first().height()==null?1920:640;
@@ -77,7 +84,9 @@ class TweetProcess:
 
     def modify_tweet(self):
         # time.sleep(0.5)
-        self.driver.set_window_size(640, 2000)
+        self.driver.set_window_size(640, self.driver.execute_script('''
+                    return $('.js-tweet-text-container').last().parents(".permalink-tweet-container,.js-stream-item").offset().top+$('.js-tweet-text-container').first().parents(".permalink-tweet-container,.js-stream-item").height();
+                    '''))
         if("/status/" in self.driver.current_url):
             self.driver.execute_script(f'''
             //$("body").html($(".PermalinkOverlay-content").html());

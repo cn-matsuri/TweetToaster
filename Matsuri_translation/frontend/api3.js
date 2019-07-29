@@ -1,6 +1,7 @@
 twemoji.base = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/";
 var url;
 function submit_task(isFast) {
+    performanceData.beforeSubmitTask = new Date().getTime();
     url = $('#url').val();
     url = url.replace("mobile.twitter.com", "twitter.com");
     url = url.replace(/\?.*/, "");
@@ -29,6 +30,7 @@ function submit_task(isFast) {
 }
 
 function fetch_img(task_id) {
+    performanceData.beforeFetchImg = new Date().getTime();
     var count = 0;
     var locked = false;
     var event = setInterval(function () {
@@ -41,6 +43,7 @@ function fetch_img(task_id) {
             success: function (data, status, xhr) {
                 locked = false;
                 if (data.state === "SUCCESS") {
+                    performanceData.getTaskSucccess = new Date().getTime();
                     var filename = data.result.substr(0, data.result.indexOf("|"));
                     var clipinfo = data.result.substr(data.result.indexOf("|") + 1);
 
@@ -61,9 +64,11 @@ function fetch_img(task_id) {
                     };
 
                     xhr.onload = function (e) {
+                        performanceData.imageLoaded = new Date().getTime();
                         $("#screenshots").html("            <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
                             "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
                         $("#screenshotclip0").css("background-image", 'url("cache/' + filename + '.png")');
+
                         $('#url').css("display", "");
                         $('#progress').css("display", "none");
                         clip_screenshot();
@@ -155,13 +160,12 @@ function show_translate(data) {
     })
 }
 
-
 function clip_screenshot() {
     $("#screenshotclip" + 0).click(function () {
         goto($(this)[0].id);
     });
+
     for (var i = 0; i < tweetpos.length; i++) {
-        if (tweetpos[i].bottom > 2000) break;
         $("#screenshotclip" + i).css("height", tweetpos[i].bottom - (i == 0 ? 0 : tweetpos[i - 1].blockbottom));
         $("#screenshotclip" + i).after("<div class='screenshotclip' id='" + "screenshotclip" + (i + 1) + "'></div>");
         $("#screenshotclip" + i).after("<div class='screenshotclip' id='" + "screenshotclip" + (i + 1000) + "'></div>");
@@ -169,7 +173,7 @@ function clip_screenshot() {
         $("#screenshotclip" + (i + 1000)).css("background-image", $("#screenshotclip" + i).css("background-image"));
         $("#screenshotclip" + (i + 1)).css("width", $("#screenshotclip" + i).css("width"));
         $("#screenshotclip" + (i + 1000)).css("width", $("#screenshotclip" + i).css("width"));
-        $("#screenshotclip" + (i + 1)).css("height", 2000 - tweetpos[i].blockbottom);
+        $("#screenshotclip" + (i + 1)).css("height", -tweetpos[i].blockbottom);
         $("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom);
         $("#screenshotclip" + (i + 1)).css("background-position-y", -tweetpos[i].blockbottom);
         $("#screenshotclip" + (i + 1000)).css("background-position-y", -tweetpos[i].bottom);
@@ -348,6 +352,7 @@ $(function () {
 
 
     if (getUrlParam("tweet") != null && getUrlParam("tweet").length > 0) {
+        performanceData.autoBeforeTemplate = new Date().getTime();
         $.ajaxSettings.async = false;
         if (getUrlParam("template") != null && getUrlParam("template").length > 0) {
             $.get(getUrlParam("template"), function (data, status) {
@@ -356,6 +361,7 @@ $(function () {
             });
         }
         $.ajaxSettings.async = true;
+        performanceData.autoAfterTemplate = new Date().getTime();
         $('#url').val(getUrlParam("tweet"));
         submit_task(true);
         if (getUrlParam("translate") != null && getUrlParam("translate").length > 0) {
@@ -374,7 +380,9 @@ $(function () {
 
 function downloadAsCanvas() {
     $('body')[0].scrollIntoView();
+    performanceData.beforeH2C = new Date().getTime();
     html2canvas(document.querySelector("#screenshots"), {useCORS: true}).then(canvas => {
+        performanceData.afterH2C = new Date().getTime();
         //createAndDownloadFile("twitterImg" + new Date().getTime() + ".png", canvas.toDataURL("image/png"));
         if (getUrlParam("out") == null) {
             canvas.toBlob(function (blob) {

@@ -13,7 +13,7 @@ celery = Celery('api')
 celery.config_from_object('Matsuri_translation.celeryconfig')
 
 
-@celery.task()
+@celery.task(time_limit=300)
 def execute_event(event):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
@@ -34,6 +34,7 @@ def execute_event(event):
 
 @celery.task(time_limit=300)
 def execute_event_auto(event):
+    eventStartTime = int(round(time.time() * 1000))
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
@@ -54,7 +55,7 @@ def execute_event_auto(event):
         except:
             0 == 0
         finally:
-            filename = processor.save_screenshots_auto()
+            filename = processor.save_screenshots_auto(eventStartTime)
     finally:
         # time.sleep(5)
         driver_frontend.quit()

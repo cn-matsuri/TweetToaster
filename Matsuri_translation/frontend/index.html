@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <script>
+        var performanceData = {};
+        performanceData.pageHeadTop = new Date().getTime();
+    </script>
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-74076320-2"></script>
     <script>
@@ -50,6 +54,9 @@
     <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
     <script src="api3.js"></script>
     <link rel="stylesheet" href="index.css">
+    <script>
+        performanceData.pageHeadBottom = new Date().getTime();
+    </script>
 </head>
 
 <body>
@@ -59,29 +66,7 @@
             height="0" width="0" style="display:none;visibility:hidden"></iframe>
 </noscript>
 <!-- End Google Tag Manager (noscript) -->
-<!--    <div class="container">-->
-<!--        <h1 style="text-align: center">夏色祭工坊：烤肉机DEV</h1>-->
-<!--        <div class="row">-->
-<!--            <div class="col-md-12">-->
-<!--                <form>-->
-<!--                    <div class="form-group">-->
-<!--                        <label for="url">推特地址</label>-->
-<!--                        <input class="form-control" id="url" placeholder="推文地址" name="url">-->
-<!--                        <label for="translation">译文</label>-->
-<!--                        <textarea name="translation" id="translation" class="form-control" cols="30" rows="12"-->
-<!--                            placeholder="译文"></textarea>-->
-<!--                        <button id="submit" class="btn btn-primary" type="button">提交</button>-->
-<!--                    </div>-->
-<!--                </form>-->
-<!--            </div>-->
-<!--        </div>-->
-<!--    </div>-->
-<!--    <div class="row">-->
-<!--        <div class="col-md-12">-->
-<!--            <div id="img">-->
-<!--            </div>-->
-<!--        </div>-->
-<!--    </div>-->
+
 <div class="screenshotwrapper">
 
     <div id="screenshots" style="width: 640px">
@@ -146,6 +131,8 @@
 
 </div>
 
-
+<script>
+    performanceData.pageBodyBottom = new Date().getTime();
+</script>
 </body>
 </html>
