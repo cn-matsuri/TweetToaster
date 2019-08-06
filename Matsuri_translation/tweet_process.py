@@ -121,11 +121,13 @@ class TweetProcess:
             $(".tweet").css("padding-right","40px");
             ''')
         self.driver.execute_script(f'''
+            $(".js-display-this-media").click();
             $("#ancestors").css("margin","0");
             $("body").css("overflow","hidden");
             $('.follow-button').css('display','none');
             $(".tweet").css("background-color","#fff");
             $(".media-tags-container").remove();
+            
             ''')
         if ("/status/" in self.driver.current_url):
             self.driver.execute_script(f'''
