@@ -113,7 +113,7 @@ a2enmod proxy_http
 service apache2 restart
 ```
 
-建立虚拟主机配置文件 `vim /etc/apache2/site-available/matsuri.conf`
+建立虚拟主机配置文件 `vim /etc/apache2/sites-available/matsuri.conf`
 
 ```
 <VirtualHost *:80>
