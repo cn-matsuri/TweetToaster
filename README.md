@@ -16,22 +16,28 @@
 
 # 部署文档
 
+### 一键部署脚本(似乎有问题)
+
 环境要求:
 
 - Ubuntu 18.04
 
-部署方法：
+    `wget https://raw.githubusercontent.com/cn-matsuri/matsuri_translation/master/deploy.sh && chmod +x deploy.sh && ./deploy.sh`
 
-通过ssh远程链接到服务器后输入下列命令
-
-    wget https://raw.githubusercontent.com/cn-matsuri/matsuri_translation/master/deploy.sh && chmod +x deploy.sh && ./deploy.sh
-    
 提示:
 
 - 部署过程中可能需要键入一次sudo密码
 - 部署成功后会显示pm2的当前任务状况
 - 你可以通过修改程序目录下的celeryconfig.py来更改redis数据库的链接地址
 - 你可以重新更改你的nginx配置通过编辑/etc/nginx/conf.d/1-matsuri_translation.conf
+
+### 手动部署文档
+
+[点击查看](deploy.md)
+
+文档编辑者：
+
+[活性酱](https://github.com/inactive-virus) [b站](https://space.bilibili.com/6250373)
 
 ## 使用方法
 
