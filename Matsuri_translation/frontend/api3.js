@@ -209,8 +209,17 @@ function clip_screenshot() {
     }
 }
 
+var gotoDoubleClick = "";
+var gotoDoubleClickTimeout = -1;
 function goto(id) {
-
+    if (gotoDoubleClick != id) {
+        clearTimeout(gotoDoubleClickTimeout);
+        gotoDoubleClick = id;
+        gotoDoubleClickTimeout = setTimeout(() => {
+            gotoDoubleClick = "";
+        }, 300);
+        return;
+    }
     id = id.replace(/[^0-9]/g, "");
     id = parseInt(id);
     if (id >= 1000) id -= 1000;
