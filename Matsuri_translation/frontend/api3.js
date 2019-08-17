@@ -1,5 +1,6 @@
 twemoji.base = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/";
 var url;
+var saveUrlUser = false;
 function submit_task(isFast) {
     performanceData.beforeSubmitTask = new Date().getTime();
     url = $('#url').val();
@@ -64,6 +65,8 @@ function fetch_img(task_id) {
                     };
 
                     xhr.onload = function (e) {
+                        if (saveUrlUser)
+                            if ($("#url").val().split("/")[3] != null) localStorage.setItem("lastUser", $("#url").val().split("/")[3]);
                         performanceData.imageLoaded = new Date().getTime();
                         $("#screenshots").html("            <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
                             "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
@@ -343,9 +346,11 @@ $(function () {
         if ($("#translatetemp").css("display") == "none") $("#translatetemp").show(); else $("#translatetemp").hide();
     });
     $('#button-submit').click(function () {
+        saveUrlUser = true;
         submit_task();
     });
     $('#button-submit-fast').click(function () {
+        saveUrlUser = true;
         submit_task(true);
     });
     if (localStorage.getItem("translatetemp") == null) localStorage.setItem("translatetemp", '<div style="margin:10px 38px">\n' +
@@ -361,6 +366,7 @@ $(function () {
         $("body").removeClass("overview");
     });
 
+    if (localStorage.getItem("lastUser") != null) $("#url").val("https://twitter.com/" + localStorage.getItem("lastUser"));
     $("#url").keypress(function (event) {
         if (event.keyCode == 13) {
             submit_task(true);
