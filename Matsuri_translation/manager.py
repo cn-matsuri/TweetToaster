@@ -47,6 +47,8 @@ def execute_event_auto(event):
             'translate': event['translate'],
             'out': 1
         }
+        if 'noLikes' in event and event['noLikes']:
+            param['noLikes'] = event['noLikes']
         processor.open_page(self_url + "?" + parse.urlencode(param).replace("+", "%20"))
         # time.sleep(20)
         try:
