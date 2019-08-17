@@ -65,8 +65,8 @@ function fetch_img(task_id) {
                     };
 
                     xhr.onload = function (e) {
-                        if (saveUrlUser)
-                            if ($("#url").val().split("/")[3] != null) localStorage.setItem("lastUser", $("#url").val().split("/")[3]);
+                        if (saveUrlUser) if ($("#url").val().split("/")[3] != null) localStorage.setItem("lastUser", $("#url").val().split("/")[3]);
+                        saveUrlUser = false;
                         performanceData.imageLoaded = new Date().getTime();
                         $("#screenshots").html("            <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
                             "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
