@@ -198,7 +198,9 @@ function clip_screenshot() {
         if (("https://twitter.com" + tweetpos[i].path) == $('#url').val()) {
             //$("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom-109);
             //$("#screenshotclip" + (i + 1000)).addClass("nolikes");
-            if (localStorage.getItem("isLikeShown") != null && (!JSON.parse(localStorage.getItem("isLikeShown")))) toggleLikes($("#screenshotclip" + (i + 1000))[0]);
+            if (localStorage.getItem("isLikeShown") != null && (!JSON.parse(localStorage.getItem("isLikeShown"))))
+                toggleLikes($("#screenshotclip" + (i + 1000))[0]);
+            else if (getUrlParam("noLikes") != null) toggleLikes($("#screenshotclip" + (i + 1000))[0]);
             $("#screenshotclip" + (i + 1000)).click(function () {
                 localStorage.setItem("isLikeShown", JSON.stringify(toggleLikes(this)));
             });
