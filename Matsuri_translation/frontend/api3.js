@@ -159,7 +159,8 @@ function show_translate(data) {
 
     }
     $(".originaltext").click(function () {
-        $("#show" + $(".originaltext").index(this)).click();
+        if (document.getSelection().type != "Range" && window.getSelection().type != "Range")
+            $("#show" + $(".originaltext").index(this)).click();
     })
 }
 
