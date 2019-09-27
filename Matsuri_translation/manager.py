@@ -44,9 +44,10 @@ def execute_event_auto(event):
         param = {
             'tweet': event['tweet'],
             'template': event['template'],
-            'translate': event['translate'],
             'out': 1
         }
+        if event['translate'] != '':
+            param['translate'] = event['translate']
         if 'noLikes' in event and event['noLikes']:
             param['noLikes'] = event['noLikes']
         processor.open_page(self_url + "?" + parse.urlencode(param).replace("+", "%20"))
