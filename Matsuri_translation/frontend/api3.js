@@ -3,7 +3,9 @@ var url;
 var saveUrlUser = false;
 function submit_task(isFast) {
     performanceData.beforeSubmitTask = new Date().getTime();
+
     url = $('#url').val();
+    dataLayer.push({"event": "taskSubmit", "tweetUrl": url});
     url = url.replace("mobile.twitter.com", "twitter.com");
     url = url.replace(/\?.*/, "");
     $("#url").val(url);
@@ -404,6 +406,7 @@ $(function () {
 
 function downloadAsCanvas() {
     $('body')[0].scrollIntoView();
+    dataLayer.push({"event": "downloadPNG", "tweetUrl": url});
     performanceData.beforeH2C = new Date().getTime();
     html2canvas(document.querySelector("#screenshots"), {useCORS: true}).then(canvas => {
         performanceData.afterH2C = new Date().getTime();
