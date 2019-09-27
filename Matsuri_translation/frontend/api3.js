@@ -81,7 +81,7 @@ function fetch_img(task_id) {
                             $("#transtxt0").val(defaultTranslate);
                         }
                         refresh_trans_div();
-                        if (defaultTranslate != null) {
+                        if (defaultTranslate != null || getUrlParam("out") != null) {
                             downloadAsCanvas();
                             if (getUrlParam("out") == null) {
                                 $("#autoprogress").text("正在保存");
@@ -395,6 +395,9 @@ $(function () {
 
             defaultTranslate = defaultTranslate.replace(/\\n/g, "\n");
 
+            $(".settingscontainer").hide();
+            $(".autobanner").show();
+        } else if (getUrlParam("out") != null) {
             $(".settingscontainer").hide();
             $(".autobanner").show();
         }
