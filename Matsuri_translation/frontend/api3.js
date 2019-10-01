@@ -1,9 +1,10 @@
 twemoji.base = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/";
 var url;
 var saveUrlUser = false;
+var isSubmittedFast;
 function submit_task(isFast) {
     performanceData.beforeSubmitTask = new Date().getTime();
-
+    isSubmittedFast = isFast;
     url = $('#url').val();
     dataLayer.push({"event": "taskSubmit", "tweetUrl": url});
     url = url.replace("mobile.twitter.com", "twitter.com");
@@ -49,9 +50,16 @@ function fetch_img(task_id) {
                     performanceData.getTaskSucccess = new Date().getTime();
                     var filename = data.result.substr(0, data.result.indexOf("|"));
                     var clipinfo = data.result.substr(data.result.indexOf("|") + 1);
-
+                    clipinfo = JSON.parse(clipinfo);
                     console.log(clipinfo);
-                    show_translate(JSON.parse(clipinfo));
+                    if (isSubmittedFast && !url.endsWith(clipinfo[0]["path"])) {
+                        submit_task(false);
+                        $('#progress').val("可能为回复推文地址，正在请求完整图像");
+                        $("#autoprogress").text("可能为回复推文地址，正在请求完整图像");
+                        clearInterval(event);
+                        return;
+                    }
+                    show_translate(clipinfo);
                     refresh_trans_div();
 
 
@@ -77,8 +85,11 @@ function fetch_img(task_id) {
                         $('#url').css("display", "");
                         $('#progress').css("display", "none");
                         clip_screenshot();
+                        var translateTarget = 0;
+                        for (var i = 0; i < clipinfo.length; i++) if (url.endsWith(clipinfo[i]["path"])) translateTarget = i;
+                        for (var i = 1; i <= translateTarget; i++) $("#show" + i).click();
                         if (defaultTranslate != null) {
-                            $("#transtxt0").val(defaultTranslate);
+                            $("#transtxt" + translateTarget).val(defaultTranslate);
                         }
                         refresh_trans_div();
                         if (defaultTranslate != null || getUrlParam("out") != null) {
