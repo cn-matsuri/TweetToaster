@@ -86,10 +86,24 @@ function fetch_img(task_id) {
                         $('#progress').css("display", "none");
                         clip_screenshot();
                         var translateTarget = 0;
-                        for (var i = 0; i < clipinfo.length; i++) if (url.endsWith(clipinfo[i]["path"])) translateTarget = i;
-                        for (var i = 1; i <= translateTarget; i++) $("#show" + i).click();
+                        for (var i = 0; i < clipinfo.length; i++) if (url.endsWith(clipinfo[i]["path"])) {
+                            translateTarget = i;
+                            break;
+                        }
+                        for (var i = 1; i <= translateTarget; i++)
+                            if (!$("#show" + i).is(':checked')) $("#show" + i).click();
                         if (defaultTranslate != null) {
-                            $("#transtxt" + translateTarget).val(defaultTranslate);
+                            var multiTranslateIndex = defaultTranslate.trim().match(/^##[0-9]+$/gm);
+                            if (multiTranslateIndex != null) {
+                                multiTranslateIndex = multiTranslateIndex.map(s => +s.substr(2) - 1);
+                                var multiTranslation = defaultTranslate.trim().split(/\n?^##[0-9]+$\n?/gm).slice(1);
+                                for (var i = 0; i < multiTranslateIndex.length; i++) {
+                                    if (!$("#show" + multiTranslateIndex[i]).is(':checked')) $("#show" + i).click();
+                                    $("#transtxt" + multiTranslateIndex[i]).val(multiTranslation[i]);
+                                    if (multiTranslateIndex[i] != translateTarget) templatechosen[multiTranslateIndex[i]] = 1;
+                                }
+                            } else
+                                $("#transtxt" + translateTarget).val(defaultTranslate);
                         }
                         refresh_trans_div();
                         if (defaultTranslate != null || getUrlParam("out") != null) {
@@ -324,8 +338,11 @@ function refresh_trans_div() {
             var templateusing = template;
             if (isMultiMode) {
                 templateusing = templates[0].content;
-                for (var j = 0; j < templates.length; j++)
-                    if (templates[j].name == templatechosen[i]) templateusing = templates[j].content;
+
+                if (typeof templatechosen[i] === 'number') templateusing = templates[templatechosen[i]].content;
+                else
+                    for (var j = 0; j < templates.length; j++)
+                        if (templates[j].name == templatechosen[i]) templateusing = templates[j].content;
             }
             $("#translatediv" + i).html(twemoji.parse(templateusing.replace("{T}", transtxt)));
         }
@@ -400,7 +417,7 @@ $(function () {
         $.ajaxSettings.async = true;
         performanceData.autoAfterTemplate = new Date().getTime();
         $('#url').val(getUrlParam("tweet"));
-        submit_task(true);
+
         if (getUrlParam("translate") != null && getUrlParam("translate").length > 0) {
             defaultTranslate = getUrlParam("translate");
 
@@ -412,7 +429,8 @@ $(function () {
             $(".settingscontainer").hide();
             $(".autobanner").show();
         }
-
+        if (defaultTranslate && defaultTranslate.trim().match(/^##[0-9]+$/gm) != null) submit_task(false);
+        else submit_task(true);
     }
 
 
