@@ -2,6 +2,7 @@ from datetime import datetime
 from os import mkdir
 from os.path import isdir
 import time
+import pngquant
 from retrying import retry
 
 
@@ -15,6 +16,7 @@ class TweetProcess:
         self.afterHeadlessInstance = int(round(time.time() * 1000))
         self.beforeOpenPage = 0
         self.afterOpenPage = 0
+        pngquant.config(min_quality=70, max_quality=95, speed=1)
 
     def open_page(self, url):
         self.beforeOpenPage = int(round(time.time() * 1000))
@@ -42,6 +44,7 @@ class TweetProcess:
         #print(self.driver.find_element_by_css_selector('iframe').get_attribute('innerHTML'))
         self.driver.save_screenshot(
             f'Matsuri_translation/frontend/cache/{filename}.png')
+        # pngquant.quant_image(f'Matsuri_translation/frontend/cache/{filename}.png', f'Matsuri_translation/frontend/cache/{filename}.png')
 
         clipinfo = self.driver.execute_script('''
             var ls=[];
@@ -87,7 +90,8 @@ class TweetProcess:
         # print(self.driver.find_element_by_css_selector('iframe').get_attribute('innerHTML'))
         self.driver.save_screenshot(
             f'Matsuri_translation/frontend/cache/{filename}.png')
-
+        pngquant.quant_image(f'Matsuri_translation/frontend/cache/{filename}.png',
+                             f'Matsuri_translation/frontend/cache/{filename}o.png')
         return filename
 
     def modify_tweet(self):
@@ -95,7 +99,7 @@ class TweetProcess:
         self.driver.set_window_size(640, self.driver.execute_script('''
                     return $('.js-tweet-text-container').last().parents(".permalink-tweet-container,.js-stream-item").offset().top+$('.js-tweet-text-container').first().parents(".permalink-tweet-container,.js-stream-item").height();
                     '''))
-        if("/status/" in self.driver.current_url):
+        if "/status/" in self.driver.current_url:
             self.driver.execute_script(f'''
             //$("body").html($(".PermalinkOverlay-content").html());
             //$(".PermalinkOverlay-modal").removeClass("PermalinkOverlay-modal");
@@ -129,7 +133,7 @@ class TweetProcess:
             $(".media-tags-container").remove();
             
             ''')
-        if ("/status/" in self.driver.current_url):
+        if "/status/" in self.driver.current_url:
             self.driver.execute_script(f'''
             var timestamp = document.querySelector('.permalink-header .time > a > span').getAttribute('data-time-ms');
             var now = new Date(timestamp - 0);
