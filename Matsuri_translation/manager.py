@@ -77,7 +77,7 @@ def execute_event_auto(event):
         finally:
             filename = processor.save_screenshots_auto(eventStartTime)
             try:
-                event.filename = filename
+                # event.filename = filename
                 insert_text_chunk(f'Matsuri_translation/frontend/cache/{filename}.png',
                                   f'Matsuri_translation/frontend/cache/{filename}.png',
                                   json.dumps(event).encode("utf-8"))
