@@ -5,12 +5,29 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import time
+import png
 from .celeryconfig import self_url
 from urllib import parse
 from .tweet_process import TweetProcess
+import json
 
 celery = Celery('api')
 celery.config_from_object('Matsuri_translation.celeryconfig')
+
+
+def insert_text_chunk(src_png, dst_png, text):
+    reader = png.Reader(filename=src_png)
+    chunks = reader.chunks()  # 创建一个每次返回一个chunk的生成器
+    chunk_list = list(chunks)  # 把生成器的所有元素变成list
+    # print(f"target png total chunks number is {len(chunk_list)}")
+    chunk_item = tuple([b'tEXt', text])
+
+    # 第一个chunk是固定的IHDR，我们把tEXt放在第2个chunk
+    index = 1
+    chunk_list.insert(index, chunk_item)
+
+    with open(dst_png, 'wb') as dst_file:
+        png.write_chunks(dst_file, chunk_list)
 
 
 @celery.task(time_limit=300)
@@ -55,10 +72,16 @@ def execute_event_auto(event):
         try:
             WebDriverWait(driver_frontend, 60, 0.5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'canvas')))
-        except:
+        except():
             0 == 0
         finally:
             filename = processor.save_screenshots_auto(eventStartTime)
+            try:
+                insert_text_chunk(f'Matsuri_translation/frontend/cache/{filename}.png',
+                                  f'Matsuri_translation/frontend/cache/{filename}.png',
+                                  json.dumps(event).encode("utf-8"))
+            except():
+                print("error in metadata")
     finally:
         # time.sleep(5)
         driver_frontend.quit()
