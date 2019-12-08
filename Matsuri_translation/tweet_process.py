@@ -90,8 +90,7 @@ class TweetProcess:
         # print(self.driver.find_element_by_css_selector('iframe').get_attribute('innerHTML'))
         self.driver.save_screenshot(
             f'Matsuri_translation/frontend/cache/{filename}.png')
-        pngquant.quant_image(f'Matsuri_translation/frontend/cache/{filename}.png',
-                             f'Matsuri_translation/frontend/cache/{filename}o.png')
+        # pngquant.quant_image(f'Matsuri_translation/frontend/cache/{filename}.png',f'Matsuri_translation/frontend/cache/{filename}o.png')
         return filename
 
     def modify_tweet(self):
