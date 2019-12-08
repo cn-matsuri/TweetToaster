@@ -43,8 +43,6 @@ def execute_event(event):
         processor.modify_tweet()
         processor.scroll_page_to_tweet(event['fast'])
         filename = processor.save_screenshots()
-        insert_text_chunk(f'Matsuri_translation/frontend/cache/{filename}.png',
-                          f'Matsuri_translation/frontend/cache/{filename}.png', json.dumps(event).encode("utf-8"))
     finally:
         # time.sleep(5)
         driver.quit()
