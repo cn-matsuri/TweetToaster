@@ -72,7 +72,7 @@ def execute_event_auto(event):
         try:
             WebDriverWait(driver_frontend, 60, 0.5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'canvas')))
-        except():
+        except:
             0 == 0
         finally:
             filename = processor.save_screenshots_auto(eventStartTime)
@@ -81,7 +81,7 @@ def execute_event_auto(event):
                 insert_text_chunk(f'Matsuri_translation/frontend/cache/{filename}.png',
                                   f'Matsuri_translation/frontend/cache/{filename}.png',
                                   json.dumps(event).encode("utf-8"))
-            except():
+            except:
                 print("error in metadata")
     finally:
         # time.sleep(5)
