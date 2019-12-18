@@ -54,6 +54,9 @@ def execute_event_auto(event):
     eventStartTime = int(round(time.time() * 1000))
     chrome_options = Options()
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument(
+        "--user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36\"")
+    # 增加UA以触发Google Analytics
     # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
     driver_frontend = webdriver.Chrome(options=chrome_options)
     try:
