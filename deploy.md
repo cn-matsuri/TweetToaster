@@ -80,6 +80,8 @@ pip3 install pipenv
 cd matsuri_translation
 python3 -m pipenv run pip install -r requirements.txt
 python3 -m pipenv run pip install gunicorn
+python3 -m pipenv run pip install pypng
+python3 -m pipenv run pip install pngquant
 ```
 
 如果执行pip3遇到`ImportError: cannot import name main`的错误，请在root下执行`hash -r`刷新一下
