@@ -43,6 +43,8 @@ def execute_event(event):
         processor.modify_tweet()
         processor.scroll_page_to_tweet(event['fast'])
         filename = processor.save_screenshots()
+    except:
+        driver.save_screenshot('/home/ubuntu/TTLastError.png')
     finally:
         # time.sleep(5)
         driver.quit()
