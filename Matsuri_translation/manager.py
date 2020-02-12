@@ -8,7 +8,7 @@ import time
 import png
 from .celeryconfig import self_url
 from urllib import parse
-from .tweet_process import TweetProcess
+from tweet_process import TweetProcess, TweetProcessV2
 import json
 
 celery = Celery('api')
@@ -17,12 +17,12 @@ celery.config_from_object('Matsuri_translation.celeryconfig')
 
 def insert_text_chunk(src_png, dst_png, text):
     reader = png.Reader(filename=src_png)
-    chunks = reader.chunks()  # ´´½¨Ò»¸öÃ¿´Î·µ»ØÒ»¸öchunkµÄÉú³ÉÆ÷
-    chunk_list = list(chunks)  # °ÑÉú³ÉÆ÷µÄËùÓÐÔªËØ±ä³Élist
+    chunks = reader.chunks()  # ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ã¿ï¿½Î·ï¿½ï¿½ï¿½Ò»ï¿½ï¿½chunkï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    chunk_list = list(chunks)  # ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½Ø±ï¿½ï¿½list
     # print(f"target png total chunks number is {len(chunk_list)}")
     chunk_item = tuple([b'tEXt', text])
 
-    # µÚÒ»¸öchunkÊÇ¹Ì¶¨µÄIHDR£¬ÎÒÃÇ°ÑtEXt·ÅÔÚµÚ2¸öchunk
+    # ï¿½ï¿½Ò»ï¿½ï¿½chunkï¿½Ç¹Ì¶ï¿½ï¿½ï¿½IHDRï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½tEXtï¿½ï¿½ï¿½Úµï¿½2ï¿½ï¿½chunk
     index = 1
     chunk_list.insert(index, chunk_item)
 
@@ -34,22 +34,24 @@ def insert_text_chunk(src_png, dst_png, text):
 def execute_event(event):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
-    chrome_options.add_argument(
-        "--user-agent=Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) Waterfox/56.2")
-    # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
+    # chrome_options.add_argument(
+    #     "--user-agent=Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) Waterfox/56.2")
+    chrome_options.add_argument("--proxy-server=192.168.1.10:8080")
     driver = webdriver.Chrome(options=chrome_options)
     try:
-        processor = TweetProcess(driver)
+        processor = TweetProcessV2(driver)
         processor.open_page(event['url'])
+        WebDriverWait(driver, 60, 0.5).until(
+            EC.presence_of_element_located((By.TAG_NAME, "article")))
         processor.modify_tweet()
         processor.scroll_page_to_tweet(event['fast'])
-        filename = processor.save_screenshots()
-    except:
-        driver.save_screenshot('/home/ubuntu/TTLastError.png')
+        tweetInfo = processor.save_screenshots()
+    # except:
+    #     driver.save_screenshot('/home/ubuntu/TTLastError.png')
     finally:
         # time.sleep(5)
         driver.quit()
-    return filename
+    return tweetInfo
 
 
 @celery.task(time_limit=300)
@@ -58,7 +60,7 @@ def execute_event_auto(event):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--user-agent=TweetoasterAutomaticMode")
-    # Ôö¼ÓUAÒÔ´¥·¢Google Analytics
+    # ï¿½ï¿½ï¿½ï¿½UAï¿½Ô´ï¿½ï¿½ï¿½Google Analytics
     # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
     driver_frontend = webdriver.Chrome(options=chrome_options)
     try:

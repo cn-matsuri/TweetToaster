@@ -1,4 +1,5 @@
 from datetime import datetime
+from selenium import common
 from os import mkdir
 from os.path import isdir
 import time
@@ -40,12 +41,14 @@ class TweetProcess:
         if not isdir('Matsuri_translation/frontend/cache'):
             mkdir('Matsuri_translation/frontend/cache')
 
-
-        #print(self.driver.find_element_by_css_selector('iframe').get_attribute('innerHTML'))
+        # print(self.driver.find_element_by_css_selector('iframe').get_attribute('innerHTML'))
         self.driver.save_screenshot(
             f'Matsuri_translation/frontend/cache/{filename}.png')
         # pngquant.quant_image(f'Matsuri_translation/frontend/cache/{filename}.png', f'Matsuri_translation/frontend/cache/{filename}.png')
 
+        return self.getClipinfo(filename)
+
+    def getClipinfo(self, filename):
         clipinfo = self.driver.execute_script('''
             var ls=[];
             $('.js-tweet-text-container').each(function(i,obj){
@@ -145,3 +148,44 @@ class TweetProcess:
             var str = year + "年" + month + "月" + day + "日，" + time;
             document.querySelector('.client-and-actions .metadata > span').innerText = str;
             ''')
+
+
+class TweetProcessV2(TweetProcess):
+    def __init__(self, drive):
+        super().__init__(drive)
+
+    def scroll_page_to_tweet(self, fast):
+        self.driver.set_window_size(640, self.driver.execute_script('''
+            return $("[aria-label='Timeline: Conversation']").height() + $("[aria-label='Timeline: Conversation']").offset().top;
+            '''))
+
+    def modify_tweet(self):
+        while True:
+            try:
+                self.driver.execute_script('''var jq = document.createElement("script");
+                        jq.src = "https://twitter.com/jquery-3.4.1.min.js";
+                        document.getElementsByTagName('head')[0].appendChild(jq);''')
+                self.driver.execute_script('''
+                $("header").remove();
+                ''')
+                break
+            except common.exceptions.JavascriptException:
+                time.sleep(0.1)
+
+    def getClipinfo(self, filename):
+        clipinfo = self.driver.execute_script('''
+        var ls = [];
+        var articleList = $('article');
+        articleList.each(function(i,obj){
+                var item={
+                    top: $(obj).offset().top,
+                    bottom: $(obj).offset().top + $(obj).height(),
+                    text: $(obj).find('div[lang]').children().text(),
+                    path: $(obj).find("a[title]").attr("href"),
+                    blockbottom: $(obj).offset().top+$(obj).height()
+                }
+                ls.push(item)
+            });
+        return JSON.stringify(ls);
+        ''')
+        return filename + "|" + clipinfo
