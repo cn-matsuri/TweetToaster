@@ -70,6 +70,7 @@
 git clone https://github.com/cn-matsuri/matsuri_translation
 cp matsuri_translation/Matsuri_translation/celeryconfig_example.py matsuri_translation/Matsuri_translation/celeryconfig.py
 ```
+记得更改最后一行`self_url = 'http://localhost/'`成你需要的链接地址，例如`self_url = 'https://ts.matsuri.design/'`
 
 > 所以为什么不直接把文件放在那里而要加个_example呢
 
