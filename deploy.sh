@@ -7,8 +7,7 @@ command_exists()
 
 if [ $(command_exists git) ] && \
    [ $(command_exists python) ] && \
-   [ $(command_exists pip) ] && \
-   [ $(command_exists aaa) ]; then
+   [ $(command_exists pip) ]; then
     echo "Dependency Check OK";
 else
     echo 'Warning: whether python or pip or git is not installed.';
