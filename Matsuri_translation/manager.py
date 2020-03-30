@@ -4,6 +4,7 @@ from selenium.webdriver.chrome.webdriver import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from celery.exceptions import SoftTimeLimitExceeded
 import time
 import png
 from .celeryconfig import self_url
@@ -30,10 +31,12 @@ def insert_text_chunk(src_png, dst_png, text):
         png.write_chunks(dst_file, chunk_list)
 
 
-@celery.task(time_limit=300)
+@celery.task(time_limit=300, soft_time_limit=240)
 def execute_event(event):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument(
         "--user-agent=Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) Waterfox/56.2")
     # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
@@ -45,18 +48,20 @@ def execute_event(event):
         processor.scroll_page_to_tweet(event['fast'])
         filename = processor.save_screenshots()
     except:
-        driver.save_screenshot('/home/ubuntu/TTLastError.png')
+        driver.save_screenshot(f'Matsuri_translation/frontend/cache/LastError.png')
     finally:
         # time.sleep(5)
         driver.quit()
     return filename
 
 
-@celery.task(time_limit=300)
+@celery.task(time_limit=300, soft_time_limit=240)
 def execute_event_auto(event):
     eventStartTime = int(round(time.time() * 1000))
     chrome_options = Options()
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--user-agent=TweetoasterAutomaticMode")
     # 增加UA以触发Google Analytics
     # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
@@ -78,7 +83,7 @@ def execute_event_auto(event):
             WebDriverWait(driver_frontend, 60, 0.5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'canvas')))
         except:
-            0 == 0
+            driver_frontend.save_screenshot(f'Matsuri_translation/frontend/cache/LastErrorAuto.png')
         finally:
             filename = processor.save_screenshots_auto(eventStartTime)
             try:
