@@ -12,10 +12,11 @@ function submit_task(isFast) {
     $("#url").val(url);
     //var translation = $('#translation').val().replace(/\r\n|\r|\n/g, '\\r');
     $('#progress').val("开始获取图像");
-
     $("#autoprogress").text("开始获取图像");
     $('#url').css("display", "none");
     $('#progress').css("display", "");
+    $('#button-submit').attr("disabled", "disabled");
+    $('#button-submit-fast').attr("disabled", "disabled");
     $("#translatetbody").html("");
     $("#screenshots").html("        <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
         "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
@@ -84,6 +85,9 @@ function fetch_img(task_id) {
 
                         $('#url').css("display", "");
                         $('#progress').css("display", "none");
+
+                        $('#button-submit').removeAttr("disabled");
+                        $('#button-submit-fast').removeAttr("disabled");
                         clip_screenshot();
                         var translateTarget = 0;
                         for (var i = 0; i < clipinfo.length; i++) if (url.endsWith(clipinfo[i]["path"])) {
@@ -131,12 +135,15 @@ function fetch_img(task_id) {
                 alert("服务器错误，请检查您提供的地址是否为正确的推特地址");
                 $('#url').css("display", "");
                 $('#progress').css("display", "none");
+
+                $('#button-submit').removeAttr("disabled");
+                $('#button-submit-fast').removeAttr("disabled");
             },
             dataType: 'json',
         });
         $('#progress').val("等待服务器响应，已尝试" + count + "次");
         $("#autoprogress").text("等待服务器响应，已尝试" + count + "次");
-    }, 100)
+    }, 1000)
 }
 
 var tweetpos;
