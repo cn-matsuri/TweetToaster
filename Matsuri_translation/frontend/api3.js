@@ -1,4 +1,4 @@
-twemoji.base = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/";
+//twemoji.base = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/";
 var url;
 var saveUrlUser = false;
 var isSubmittedFast;
