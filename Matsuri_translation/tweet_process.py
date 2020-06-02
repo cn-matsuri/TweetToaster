@@ -75,6 +75,7 @@ class TweetProcess:
                     blockbottom:rect.bottom,
                     bottom:text.getBoundingClientRect().bottom,
                     text:text.innerText,
+                    textSize:window.getComputedStyle(text).fontSize.replace('px',''),
                 }
             })
             }catch{}
@@ -114,6 +115,7 @@ class TweetProcess:
             document.querySelectorAll("article div[role=button] div[dir=auto]").forEach(o=>o.click());
             document.querySelector("div[data-testid=primaryColumn]").style.maxWidth="640px";
             document.querySelector("div[data-testid=primaryColumn]").style.border="0";
+            document.querySelectorAll("article div[role=group]").forEach(o=>o.remove());
         }catch{}''')
         # self.driver.set_window_size(640, self.driver.execute_script('''
         #             return $('.js-tweet-text-container').last().parents(".permalink-tweet-container,.js-stream-item").offset().top+$('.js-tweet-text-container').first().parents(".permalink-tweet-container,.js-stream-item").height();

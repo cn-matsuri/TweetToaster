@@ -200,11 +200,11 @@ function show_translate(data) {
 
 function toggleLikes(obj) {
     if ($(obj).hasClass("nolikes")) {
-        $(obj).css("height", $(obj).height() + 109);
+        $(obj).css("height", $(obj).height() + 55);
         $(obj).removeClass("nolikes");
         return true;
     } else {
-        $(obj).css("height", $(obj).height() - 109);
+        $(obj).css("height", $(obj).height() - 55);
         $(obj).addClass("nolikes");
         return false;
     }
@@ -233,7 +233,7 @@ function clip_screenshot() {
             goto($(this)[0].id);
         });
 
-        if (("https://twitter.com" + tweetpos[i].path) == $('#url').val()) {
+        if (("https://twitter.com" + tweetpos[i].path) == $('#url').val() || tweetpos[i].textSize === "23") {
             //$("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom-109);
             //$("#screenshotclip" + (i + 1000)).addClass("nolikes");
             if (localStorage.getItem("isLikeShown") != null && (!JSON.parse(localStorage.getItem("isLikeShown"))))

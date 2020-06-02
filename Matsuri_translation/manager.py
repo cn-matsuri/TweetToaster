@@ -82,8 +82,8 @@ def execute_event_auto(event):
         }
         if event['translate'] != '':
             param['translate'] = event['translate']
-        # if 'noLikes' in event and event['noLikes']:
-        #     param['noLikes'] = event['noLikes']
+        if 'noLikes' in event and event['noLikes']:
+            param['noLikes'] = event['noLikes']
         driver_frontend.get(self_url + "?" + parse.urlencode(param).replace("+", "%20"))
         # time.sleep(20)
         try:
@@ -100,8 +100,10 @@ def execute_event_auto(event):
                                   json.dumps(event).encode("utf-8"))
             except:
                 print("error in metadata")
+    except:
+        driver_frontend.save_screenshot(f'Matsuri_translation/frontend/cache/LastErrorAuto.png')
     finally:
         # time.sleep(5)
-        driver_frontend.save_screenshot(f'Matsuri_translation/frontend/cache/LastErrorAuto.png')
+
         driver_frontend.quit()
     return filename
