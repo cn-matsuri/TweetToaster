@@ -53,7 +53,7 @@ function fetch_img(task_id) {
                     var clipinfo = data.result.substr(data.result.indexOf("|") + 1);
                     clipinfo = JSON.parse(clipinfo);
                     console.log(clipinfo);
-                    if (isSubmittedFast && !url.endsWith(clipinfo[0]["path"])) {
+                    if (isSubmittedFast && clipinfo[0] && clipinfo[0]["path"] && !url.endsWith(clipinfo[0]["path"])) {
                         submit_task(false);
                         $('#progress').val("可能为回复推文地址，正在请求完整图像");
                         $("#autoprogress").text("可能为回复推文地址，正在请求完整图像");
@@ -90,7 +90,7 @@ function fetch_img(task_id) {
                         $('#button-submit-fast').removeAttr("disabled");
                         clip_screenshot();
                         var translateTarget = 0;
-                        for (var i = 0; i < clipinfo.length; i++) if (url.endsWith(clipinfo[i]["path"])) {
+                        for (var i = 0; i < clipinfo.length; i++) if (url.endsWith(clipinfo[i]["path"]) || clipinfo[i].textSize === "23") {
                             translateTarget = i;
                             break;
                         }
@@ -157,7 +157,7 @@ function show_translate(data) {
     $("#translatetbody").html("");
     for (var i = 0; i < tweetpos.length; i++) {
         templatechosen.push("");
-        var str = tweetpos[i].text;
+        var str = tweetpos[i].text || "";
         str = str.replace(/\n/g, "<br>");
         str = str.replace(/  /g, "&nbsp; ");
         $("#translatetbody").append("<tr>\n" +
@@ -200,11 +200,11 @@ function show_translate(data) {
 
 function toggleLikes(obj) {
     if ($(obj).hasClass("nolikes")) {
-        $(obj).css("height", $(obj).height() + 109);
+        $(obj).css("height", $(obj).height() + 55);
         $(obj).removeClass("nolikes");
         return true;
     } else {
-        $(obj).css("height", $(obj).height() - 109);
+        $(obj).css("height", $(obj).height() - 55);
         $(obj).addClass("nolikes");
         return false;
     }
@@ -233,7 +233,7 @@ function clip_screenshot() {
             goto($(this)[0].id);
         });
 
-        if (("https://twitter.com" + tweetpos[i].path) == $('#url').val()) {
+        if (("https://twitter.com" + tweetpos[i].path) == $('#url').val() || tweetpos[i].textSize === "23") {
             //$("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom-109);
             //$("#screenshotclip" + (i + 1000)).addClass("nolikes");
             if (localStorage.getItem("isLikeShown") != null && (!JSON.parse(localStorage.getItem("isLikeShown"))))

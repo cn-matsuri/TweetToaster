@@ -36,11 +36,17 @@ def execute_event(event):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     # chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument(
-        "--user-agent=Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) Waterfox/56.2")
+    WIDTH = 640  # 宽度
+    HEIGHT = 10000  # 高度
+    PIXEL_RATIO = 1.0  # 分辨率
+
+    mobileEmulation = {"deviceMetrics": {"width": WIDTH, "height": HEIGHT, "pixelRatio": PIXEL_RATIO}}
+    chrome_options.add_experimental_option('mobileEmulation', mobileEmulation)
+    # chrome_options.add_argument(
+    #     "--user-agent=Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) Waterfox/56.2")
     # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
     driver = webdriver.Chrome(options=chrome_options)
+    filename = 'success|[]'
     try:
         processor = TweetProcess(driver)
         processor.open_page(event['url'])
@@ -48,10 +54,13 @@ def execute_event(event):
         processor.scroll_page_to_tweet(event['fast'])
         filename = processor.save_screenshots()
     except:
-        driver.save_screenshot(f'Matsuri_translation/frontend/cache/LastError.png')
-    finally:
-        # time.sleep(5)
+        # driver.save_screenshot(f'Matsuri_translation/frontend/cache/LastError.png')
         driver.quit()
+        return 'LastError|[]'
+    finally:
+        #     # time.sleep(5)
+        driver.quit()
+    #
     return filename
 
 
@@ -60,8 +69,6 @@ def execute_event_auto(event):
     eventStartTime = int(round(time.time() * 1000))
     chrome_options = Options()
     chrome_options.add_argument("--headless")
-    #chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--user-agent=TweetoasterAutomaticMode")
     # 增加UA以触发Google Analytics
     # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
@@ -77,7 +84,7 @@ def execute_event_auto(event):
             param['translate'] = event['translate']
         if 'noLikes' in event and event['noLikes']:
             param['noLikes'] = event['noLikes']
-        processor.open_page(self_url + "?" + parse.urlencode(param).replace("+", "%20"))
+        driver_frontend.get(self_url + "?" + parse.urlencode(param).replace("+", "%20"))
         # time.sleep(20)
         try:
             WebDriverWait(driver_frontend, 60, 0.5).until(
@@ -93,7 +100,10 @@ def execute_event_auto(event):
                                   json.dumps(event).encode("utf-8"))
             except:
                 print("error in metadata")
+    except:
+        driver_frontend.save_screenshot(f'Matsuri_translation/frontend/cache/LastErrorAuto.png')
     finally:
         # time.sleep(5)
+
         driver_frontend.quit()
     return filename
