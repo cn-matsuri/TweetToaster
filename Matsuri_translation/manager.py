@@ -37,7 +37,7 @@ def execute_event(event):
     chrome_options.add_argument("--headless")
     # chrome_options.add_argument("--no-sandbox")
     WIDTH = 640  # 宽度
-    HEIGHT = 2000  # 高度
+    HEIGHT = 10000  # 高度
     PIXEL_RATIO = 1.0  # 分辨率
 
     mobileEmulation = {"deviceMetrics": {"width": WIDTH, "height": HEIGHT, "pixelRatio": PIXEL_RATIO}}

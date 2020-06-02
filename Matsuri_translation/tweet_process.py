@@ -29,15 +29,16 @@ class TweetProcess:
 
     @retry
     def scroll_page_to_tweet(self, fast):
-        time.sleep(0.5)
-        # if fast:
-        #     self.driver.set_window_size(640, self.driver.execute_script('''
-        #     return $('.js-tweet-text-container').first().parents(".permalink-tweet-container,.js-stream-item").offset().top+$('.js-tweet-text-container').first().parents(".permalink-tweet-container,.js-stream-item").height();
-        #     '''))
-        # else:
-        #     self.driver.set_window_size(640, self.driver.execute_script('''
-        #     return $('.js-tweet-text-container').last().parents(".permalink-tweet-container,.js-stream-item").offset().top+$('.js-tweet-text-container').last().parents(".permalink-tweet-container,.js-stream-item").height();
-        #     '''))
+        self.driver.execute_script("document.body.scrollIntoView()")
+        # time.sleep(0.5)
+        if fast:
+            self.driver.set_window_size(640, self.driver.execute_script('''
+            return document.querySelector("section").getBoundingClientRect().bottom
+            '''))
+        else:
+            self.driver.set_window_size(640, self.driver.execute_script('''
+            return document.querySelector("section").getBoundingClientRect().bottom
+            '''))
         # self.driver.execute_script("$('body')[0].scrollIntoView()")
 
     def save_screenshots(self):
