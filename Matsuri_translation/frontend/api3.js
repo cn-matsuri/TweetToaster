@@ -53,7 +53,7 @@ function fetch_img(task_id) {
                     var clipinfo = data.result.substr(data.result.indexOf("|") + 1);
                     clipinfo = JSON.parse(clipinfo);
                     console.log(clipinfo);
-                    if (isSubmittedFast && !url.endsWith(clipinfo[0]["path"])) {
+                    if (isSubmittedFast && clipinfo[0] && clipinfo[0]["path"] && !url.endsWith(clipinfo[0]["path"])) {
                         submit_task(false);
                         $('#progress').val("可能为回复推文地址，正在请求完整图像");
                         $("#autoprogress").text("可能为回复推文地址，正在请求完整图像");
@@ -157,7 +157,7 @@ function show_translate(data) {
     $("#translatetbody").html("");
     for (var i = 0; i < tweetpos.length; i++) {
         templatechosen.push("");
-        var str = tweetpos[i].text;
+        var str = tweetpos[i].text || "";
         str = str.replace(/\n/g, "<br>");
         str = str.replace(/  /g, "&nbsp; ");
         $("#translatetbody").append("<tr>\n" +
