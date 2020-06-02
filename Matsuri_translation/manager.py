@@ -35,6 +35,7 @@ def insert_text_chunk(src_png, dst_png, text):
 def execute_event(event):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--user-data-dir=/tmp/chromium-user-dir")
     # chrome_options.add_argument("--no-sandbox")
     WIDTH = 640  # 宽度
     HEIGHT = 10000  # 高度
@@ -69,6 +70,7 @@ def execute_event_auto(event):
     eventStartTime = int(round(time.time() * 1000))
     chrome_options = Options()
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--user-data-dir=/tmp/chromium-user-dir")
     chrome_options.add_argument("--user-agent=TweetoasterAutomaticMode")
     # 增加UA以触发Google Analytics
     # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
