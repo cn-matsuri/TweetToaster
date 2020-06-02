@@ -90,7 +90,7 @@ function fetch_img(task_id) {
                         $('#button-submit-fast').removeAttr("disabled");
                         clip_screenshot();
                         var translateTarget = 0;
-                        for (var i = 0; i < clipinfo.length; i++) if (url.endsWith(clipinfo[i]["path"])) {
+                        for (var i = 0; i < clipinfo.length; i++) if (url.endsWith(clipinfo[i]["path"]) || clipinfo[i].textSize === "23") {
                             translateTarget = i;
                             break;
                         }
