@@ -117,8 +117,8 @@ class TweetProcess:
             document.querySelector("div[data-testid=primaryColumn]").style.maxWidth="640px";
             document.querySelector("div[data-testid=primaryColumn]").style.border="0";
             document.querySelectorAll("article div[role=group]").forEach(o=>o.remove());
-            document.querySelector("svg[viewbox]").parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.remove();
-        }catch{}''')
+            document.querySelector("path[d='M20 11H7.414l4.293-4.293c.39-.39.39-1.023 0-1.414s-1.023-.39-1.414 0l-6 6c-.39.39-.39 1.023 0 1.414l6 6c.195.195.45.293.707.293s.512-.098.707-.293c.39-.39.39-1.023 0-1.414L7.414 13H20c.553 0 1-.447 1-1s-.447-1-1-1z']").parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.remove();
+            }catch{}''')
         # self.driver.set_window_size(640, self.driver.execute_script('''
         #             return $('.js-tweet-text-container').last().parents(".permalink-tweet-container,.js-stream-item").offset().top+$('.js-tweet-text-container').first().parents(".permalink-tweet-container,.js-stream-item").height();
         #             '''))
