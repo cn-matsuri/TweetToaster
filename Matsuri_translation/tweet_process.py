@@ -117,6 +117,7 @@ class TweetProcess:
             document.querySelector("div[data-testid=primaryColumn]").style.maxWidth="640px";
             document.querySelector("div[data-testid=primaryColumn]").style.border="0";
             document.querySelectorAll("article div[role=group]").forEach(o=>o.remove());
+            document.querySelector("svg[viewbox]").parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement.remove();
         }catch{}''')
         # self.driver.set_window_size(640, self.driver.execute_script('''
         #             return $('.js-tweet-text-container').last().parents(".permalink-tweet-container,.js-stream-item").offset().top+$('.js-tweet-text-container').first().parents(".permalink-tweet-container,.js-stream-item").height();
