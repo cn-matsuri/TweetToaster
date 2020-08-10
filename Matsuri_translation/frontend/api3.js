@@ -271,12 +271,6 @@ function goto(id) {
     id = parseInt(id);
     if (id >= 1000) id -= 1000;
     //console.log("goto called "+id);
-    var oldurl = $('#url').val();
-    $('#url').val("https://twitter.com" + tweetpos[id].path);
-    if ($('#url').val() != oldurl) submit_task(); else {
-        $('#url').val(oldurl.replace(/\/status\/.*/, ""));
-        submit_task();
-    }
 }
 
 function refresh_trans_div() {

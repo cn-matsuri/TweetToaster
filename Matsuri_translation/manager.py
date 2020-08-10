@@ -7,10 +7,11 @@ from selenium.webdriver.common.by import By
 from celery.exceptions import SoftTimeLimitExceeded
 import time
 import png
-from .celeryconfig import self_url
 from urllib import parse
-from .tweet_process import TweetProcess
 import json
+
+from .tweet_process import TweetProcess
+from .celeryconfig import self_url
 
 celery = Celery('api')
 celery.config_from_object('Matsuri_translation.celeryconfig')
@@ -35,14 +36,14 @@ def insert_text_chunk(src_png, dst_png, text):
 def execute_event(event):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--user-data-dir=/tmp/chromium-user-dir")
+    # chrome_options.add_argument("--user-data-dir=/tmp/chromium-user-dir")
     # chrome_options.add_argument("--no-sandbox")
-    WIDTH = 640  # 宽度
-    HEIGHT = 4000  # 高度
-    PIXEL_RATIO = 1.0  # 分辨率
-
-    mobileEmulation = {"deviceMetrics": {"width": WIDTH, "height": HEIGHT, "pixelRatio": PIXEL_RATIO}}
-    chrome_options.add_experimental_option('mobileEmulation', mobileEmulation)
+    # WIDTH = 640  # 宽度
+    # HEIGHT = 4000  # 高度
+    # PIXEL_RATIO = 1.0  # 分辨率
+    #
+    # mobileEmulation = {"deviceMetrics": {"width": WIDTH, "height": HEIGHT, "pixelRatio": PIXEL_RATIO}}
+    # chrome_options.add_experimental_option('mobileEmulation', mobileEmulation)
     # chrome_options.add_argument(
     #     "--user-agent=Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) Waterfox/56.2")
     # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
@@ -52,8 +53,8 @@ def execute_event(event):
         processor = TweetProcess(driver)
         processor.open_page(event['url'])
         processor.modify_tweet()
-        processor.scroll_page_to_tweet(event['fast'])
-        filename = processor.save_screenshots()
+        # processor.scroll_page_to_tweet(event['fast'])
+        filename = processor.save_screenshots(event['fast'])
     except:
         # driver.save_screenshot(f'Matsuri_translation/frontend/cache/LastError.png')
         driver.quit()
