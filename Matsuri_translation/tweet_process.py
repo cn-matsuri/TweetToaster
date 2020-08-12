@@ -9,6 +9,10 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
+from celery.utils.log import get_task_logger
+
+logger = get_task_logger(__name__)
+
 
 class TweetProcess:
     def __init__(self, driver):
@@ -104,8 +108,18 @@ class TweetProcess:
         return filename
 
     def modify_tweet(self):
-
-        time.sleep(1)
+        while self.driver.execute_script(
+                '''
+                let top=0;
+                try{
+                    top=document.body.parentElement.scrollTop;
+                    document.body.scrollIntoView();
+                }catch{}
+                return top;
+                '''
+        ) > 0:
+            # logger.info("scroll_sleep")
+            time.sleep(0.5)
         self.driver.execute_script('''try{
             new_element = document.createElement("style");
             new_element.innerHTML =("*{transition:none!important}");

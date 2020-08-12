@@ -5,10 +5,16 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from celery.exceptions import SoftTimeLimitExceeded
+from celery.utils.log import get_task_logger
+
+logger = get_task_logger(__name__)
 import time
 import png
 from urllib import parse
 import json
+
+from celery import task
+from billiard import current_process
 
 from .tweet_process import TweetProcess
 from .celeryconfig import self_url
@@ -32,8 +38,10 @@ def insert_text_chunk(src_png, dst_png, text):
         png.write_chunks(dst_file, chunk_list)
 
 
-@celery.task(time_limit=300, soft_time_limit=240)
-def execute_event(event):
+@celery.task(time_limit=300, soft_time_limit=240, bind=True)
+def execute_event(self, event):
+    # logger.info("tweet.execute_event.start")
+    logger.info(current_process().index)
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     # chrome_options.add_argument("--user-data-dir=/tmp/chromium-user-dir")
@@ -49,12 +57,17 @@ def execute_event(event):
     # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
     driver = webdriver.Chrome(options=chrome_options)
     filename = 'success|[]'
+
+    # logger.info("tweet.execute_event.chrome_started")
     try:
         processor = TweetProcess(driver)
         processor.open_page(event['url'])
+        # logger.info("tweet.execute_event.page_opened")
         processor.modify_tweet()
+        # logger.info("tweet.execute_event.js_executed")
         # processor.scroll_page_to_tweet(event['fast'])
         filename = processor.save_screenshots(event['fast'])
+        # logger.info("tweet.execute_event.png_get")
     except:
         # driver.save_screenshot(f'Matsuri_translation/frontend/cache/LastError.png')
         driver.quit()
@@ -66,8 +79,8 @@ def execute_event(event):
     return filename
 
 
-@celery.task(time_limit=300, soft_time_limit=240)
-def execute_event_auto(event):
+@celery.task(time_limit=300, soft_time_limit=240, bind=True)
+def execute_event_auto(self, event):
     eventStartTime = int(round(time.time() * 1000))
     chrome_options = Options()
     chrome_options.add_argument("--headless")
