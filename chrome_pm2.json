@@ -1,0 +1,24 @@
+{
+  "apps": [
+    {
+      "name": "chromium9222",
+      "script": "chromium-browser --headless --remote-debugging-port=9222",
+      "cwd": "./"
+    },
+    {
+      "name": "chromium9223",
+      "script": "chromium-browser --headless --remote-debugging-port=9223",
+      "cwd": "./"
+    },
+    {
+      "name": "chromium9224",
+      "script": "chromium-browser --headless --remote-debugging-port=9224 --user-agent=TweetoasterAutomaticMode",
+      "cwd": "./"
+    },
+    {
+      "name": "chromium9225",
+      "script": "chromium-browser --headless --remote-debugging-port=9225 --user-agent=TweetoasterAutomaticMode",
+      "cwd": "./"
+    }
+  ]
+}
