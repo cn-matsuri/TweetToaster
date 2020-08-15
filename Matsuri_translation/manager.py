@@ -19,6 +19,17 @@ from billiard import current_process
 from .tweet_process import TweetProcess
 from .celeryconfig import self_url
 
+try:
+    from .celeryconfig import chrome_twitter_port
+    from .celeryconfig import chrome_auto_port
+except:
+    chrome_twitter_port = None
+    chrome_auto_port = None
+
+# self_url=getattr(celeryconfig,'self_url',None)
+# chrome_twitter_port=getattr(celeryconfig,'chrome_twitter_port',None)
+# chrome_auto_port=getattr(celeryconfig,'chrome_auto_port',None)
+
 celery = Celery('api')
 celery.config_from_object('Matsuri_translation.celeryconfig')
 
@@ -40,10 +51,14 @@ def insert_text_chunk(src_png, dst_png, text):
 
 @celery.task(time_limit=300, soft_time_limit=240, bind=True)
 def execute_event(self, event):
-    # logger.info("tweet.execute_event.start")
-    logger.info(current_process().index)
+    # logger.info(execute_event.name)
+    # logger.info(self.request)
+    # logger.info(current_process().index)
     chrome_options = Options()
     chrome_options.add_argument("--headless")
+    if (chrome_twitter_port != None):
+        chrome_options.add_experimental_option("debuggerAddress",
+                                               "127.0.0.1:" + str(chrome_twitter_port[current_process().index]))
     # chrome_options.add_argument("--user-data-dir=/tmp/chromium-user-dir")
     # chrome_options.add_argument("--no-sandbox")
     # WIDTH = 640  # 宽度
@@ -58,16 +73,16 @@ def execute_event(self, event):
     driver = webdriver.Chrome(options=chrome_options)
     filename = 'success|[]'
 
-    # logger.info("tweet.execute_event.chrome_started")
+    #logger.info("tweet.execute_event.chrome_started")
     try:
         processor = TweetProcess(driver)
         processor.open_page(event['url'])
-        # logger.info("tweet.execute_event.page_opened")
+        #logger.info("tweet.execute_event.page_opened")
         processor.modify_tweet()
         # logger.info("tweet.execute_event.js_executed")
         # processor.scroll_page_to_tweet(event['fast'])
         filename = processor.save_screenshots(event['fast'])
-        # logger.info("tweet.execute_event.png_get")
+        #logger.info("tweet.execute_event.png_get")
     except:
         # driver.save_screenshot(f'Matsuri_translation/frontend/cache/LastError.png')
         driver.quit()
@@ -86,6 +101,10 @@ def execute_event_auto(self, event):
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--user-data-dir=/tmp/chromium-user-dir")
     chrome_options.add_argument("--user-agent=TweetoasterAutomaticMode")
+    if (chrome_auto_port != None):
+        chrome_options.add_experimental_option("debuggerAddress",
+                                               "127.0.0.1:" + str(chrome_auto_port[current_process().index]))
+
     # 增加UA以触发Google Analytics
     # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
     driver_frontend = webdriver.Chrome(options=chrome_options)

@@ -5,7 +5,7 @@ from .manager import execute_event, celery, execute_event_auto
 app = Flask(__name__)
 
 
-# celery.conf.update(app.config)
+celery.conf.update(app.config)
 
 
 @app.route('/api/tasks', methods=['POST'])
