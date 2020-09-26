@@ -62,7 +62,7 @@ class TweetProcess:
         clipinfo = self.driver.execute_script('''
             var ls=[];
             try{
-            let clipText=[...document.querySelectorAll('article>div>div>div>div>div>div[dir=auto]'),
+            let clipText=[...document.querySelectorAll('article>div>div>div>div>div>div>div[dir=auto][lang]'),
                 ...document.querySelectorAll('article div[data-testid=tweet]>div>div>div>div[dir=auto]')]
                 .sort((a,b)=>a.getBoundingClientRect().bottom-b.getBoundingClientRect().bottom);
             let clipArticle=[...document.querySelectorAll('article')];
