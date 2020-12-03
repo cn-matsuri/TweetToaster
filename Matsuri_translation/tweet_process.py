@@ -73,7 +73,7 @@ class TweetProcess:
                 return {
                     blockbottom:rect.bottom,
                     bottom:text.getBoundingClientRect().bottom,
-                    text:text.innerText,
+                    text:[...text.querySelectorAll("span")].reduce((p,c)=>p+c.innerText,""),
                     textSize:window.getComputedStyle(text).fontSize.replace('px',''),
                 }
             })
