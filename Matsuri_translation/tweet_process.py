@@ -136,6 +136,8 @@ class TweetProcess:
                 if(node.id!=="react-root")shakeTree(node.parentElement);
             }
             shakeTree(document.querySelector('section[aria-labelledby=accessible-list-0]'));
+            document.querySelector("html").style.overflow="hidden";
+            document.querySelectorAll("div[data-testid=caret]").forEach(o=>o.style.visibility="hidden");
             document.body.scrollIntoView();
             }catch{}''')
 
