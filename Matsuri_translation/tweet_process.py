@@ -69,6 +69,14 @@ class TweetProcess:
             ls=clipArticle.map(o=>{
                 let rect=o.getBoundingClientRect();
                 let text=clipText.reduce((p,c)=>(c.getBoundingClientRect().bottom<rect.bottom?c:p));
+                text.querySelectorAll("img").forEach(o=>{
+                    try{
+                        o.insertAdjacentHTML("beforeBegin",
+                            '<span>'+String.fromCodePoint(parseInt(o.src.match(/\/([0-9a-f]+)\.svg/)[1],16))+'</span>'
+                            );
+                        o.remove();
+                    }catch{}
+                });
                 return {
                     blockbottom:rect.bottom,
                     bottom:text.getBoundingClientRect().bottom,
