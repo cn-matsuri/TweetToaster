@@ -69,7 +69,6 @@ class TweetProcess:
             ls=clipArticle.map(o=>{
                 let rect=o.getBoundingClientRect();
                 let text=clipText.reduce((p,c)=>(c.getBoundingClientRect().bottom<rect.bottom?c:p));
-                text.querySelectorAll("img").forEach(o=>{o.parentNode.innerHTML=o.alt});
                 return {
                     blockbottom:rect.bottom,
                     bottom:text.getBoundingClientRect().bottom,

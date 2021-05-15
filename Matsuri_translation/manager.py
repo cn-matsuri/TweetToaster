@@ -36,12 +36,11 @@ celery.config_from_object('Matsuri_translation.celeryconfig')
 
 def insert_text_chunk(src_png, dst_png, text):
     reader = png.Reader(filename=src_png)
-    chunks = reader.chunks()  # 创建一个每次返回一个chunk的生成器
-    chunk_list = list(chunks)  # 把生成器的所有元素变成list
-    # print(f"target png total chunks number is {len(chunk_list)}")
+    chunks = reader.chunks()
+    chunk_list = list(chunks)
+
     chunk_item = tuple([b'tEXt', text])
 
-    # 第一个chunk是固定的IHDR，我们把tEXt放在第2个chunk
     index = 1
     chunk_list.insert(index, chunk_item)
 
@@ -61,9 +60,6 @@ def execute_event(self, event):
                                                "127.0.0.1:" + str(chrome_twitter_port[current_process().index]))
     # chrome_options.add_argument("--user-data-dir=/tmp/chromium-user-dir")
     # chrome_options.add_argument("--no-sandbox")
-    # WIDTH = 640  # 宽度
-    # HEIGHT = 4000  # 高度
-    # PIXEL_RATIO = 1.0  # 分辨率
     #
     # mobileEmulation = {"deviceMetrics": {"width": WIDTH, "height": HEIGHT, "pixelRatio": PIXEL_RATIO}}
     # chrome_options.add_experimental_option('mobileEmulation', mobileEmulation)
@@ -105,8 +101,6 @@ def execute_event_auto(self, event):
         chrome_options.add_experimental_option("debuggerAddress",
                                                "127.0.0.1:" + str(chrome_auto_port[current_process().index]))
 
-    # 增加UA以触发Google Analytics
-    # chrome_options.add_argument("--proxy-server=127.0.0.1:12333")
     driver_frontend = webdriver.Chrome(options=chrome_options)
     try:
         processor = TweetProcess(driver_frontend)
@@ -142,3 +136,36 @@ def execute_event_auto(self, event):
 
         driver_frontend.quit()
     return filename
+
+
+if __name__ == "__main__":
+    event = {
+        'url': 'https://twitter.com/minatoaqua/status/1383771374183878658'
+    }
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    if (chrome_twitter_port != None):
+        chrome_options.add_experimental_option("debuggerAddress",
+                                               "127.0.0.1:" + str(chrome_twitter_port[current_process().index]))
+    driver = webdriver.Chrome(options=chrome_options)
+    filename = 'success|[]'
+
+    # logger.info("tweet.execute_event.chrome_started")
+    try:
+        processor = TweetProcess(driver)
+        processor.open_page(event['url'])
+        # logger.info("tweet.execute_event.page_opened")
+        processor.modify_tweet()
+        # logger.info("tweet.execute_event.js_executed")
+        # processor.scroll_page_to_tweet(event['fast'])
+        filename = processor.save_screenshots(event['fast'])
+        # logger.info("tweet.execute_event.png_get")
+    except:
+        driver.save_screenshot(f'Matsuri_translation/frontend/cache/LastError.png')
+        driver.quit()
+        filename = 'LastError|[]'
+    finally:
+        #     # time.sleep(5)
+        driver.quit()
+    #
+    print(filename)
