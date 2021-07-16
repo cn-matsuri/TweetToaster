@@ -60,7 +60,7 @@ wget https://raw.githubusercontent.com/cn-matsuri/matsuri_translation/master/dep
 这个模板是完全可以自定义的，自己写 HTML 就好。
 
 这里没有提供服务器连接，只是实例 example.com  
-模板打开链接的示例：https://www.example.com/?template=永久链接.txt （这里替换永久链接.txt 成一个真的文件链接）
+模板打开链接的示例：`https://www.example.com/?template=永久链接.txt` （这里替换永久链接.txt 成一个真的文件链接）
 
 烤肉机模板[源码地址](https://github.com/cn-matsuri/toastTemplates/)
 
