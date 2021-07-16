@@ -26,7 +26,7 @@ six==1.12.0
 typed-ast==1.4.0
 urllib3==1.25.3
 vine==1.3.0
-Werkzeug>=0.15.5 # 0.15.4 似乎有 bug
+Werkzeug>=0.15.4 # 0.15.4 似乎有 bug
 
 # 额外的东西
 gunicorn

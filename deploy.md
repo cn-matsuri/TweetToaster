@@ -7,8 +7,8 @@
 - [烤推机手动部署文档](#烤推机手动部署文档)
   - [Ubuntu 18.04](#ubuntu-1804)
     - [全局依赖](#全局依赖)
-      - [apt 安装以下软件包：](#apt-安装以下软件包)
-      - [npm 安装 pm2：](#npm-安装-pm2)
+      - [apt 安装以下软件包](#apt-安装以下软件包)
+      - [npm 安装 pm2](#npm-安装-pm2)
         - [第一次使用 npm](#第一次使用-npm)
         - [安装 pm2](#安装-pm2)
       - [安装 ChromeDriver](#安装-chromedriver)
@@ -34,7 +34,7 @@
 
 > 请在 root 权限下执行。（每个命令前面加个 `sudo` 就好）
 
-#### apt 安装以下软件包：
+#### apt 安装以下软件包
 
 - Web 服务器 apache2 / nginx / etc.
 - npm
@@ -55,7 +55,7 @@ apt install apache2 npm unzip git python3 python3-pip chromium-browser fonts-not
 - [北京外国语大学源](https://mirrors.bfsu.edu.cn/help/ubuntu/)
 - [中科大源](http://mirrors.ustc.edu.cn/help/ubuntu.html)
 
-#### npm 安装 pm2：
+#### npm 安装 pm2
 
 ##### 第一次使用 npm
 
@@ -230,7 +230,7 @@ server {
 
 ### 部署 HTTPS
 
-https://certbot.eff.org/instructions
+[https://certbot.eff.org/instructions](https://certbot.eff.org/instructions)
 
 ## 手动管理 Chrome 进程以节约生命 (20/08/16 更新)
 
