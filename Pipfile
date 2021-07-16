@@ -1,6 +1,6 @@
 [[source]]
 name = "pypi"
-url = "https://pypi.mirrors.ustc.edu.cn/simple/"
+url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
 verify_ssl = true
 
 [dev-packages]
@@ -14,4 +14,4 @@ pyside2 = "*"
 webdriver = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
