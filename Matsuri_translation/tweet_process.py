@@ -62,8 +62,7 @@ class TweetProcess:
         clipinfo = self.driver.execute_script('''
             var ls=[];
             try{
-            let clipText=[...document.querySelectorAll('article>div>div>div>div>div>div>div[dir=auto][lang]'),
-                ...document.querySelectorAll('article div[data-testid=tweet]>div>div>div>div[dir=auto]')]
+            let clipText=[...document.querySelectorAll('article[data-testid=tweet] div[dir=auto][lang]')]
                 .sort((a,b)=>a.getBoundingClientRect().bottom-b.getBoundingClientRect().bottom);
             let clipArticle=[...document.querySelectorAll('article')];
             ls=clipArticle.map(o=>{
@@ -129,9 +128,9 @@ class TweetProcess:
             # logger.info("scroll_sleep")
             time.sleep(0.5)
         self.driver.execute_script('''try{
-            new_element = document.createElement("style");
+            let new_element = document.createElement("style");
             new_element.innerHTML =("*{transition:none!important}");
-            document.body.appendChild(new_element);
+            document.head.appendChild(new_element);
             document.body.style.overflow="hidden";
             document.body.scrollIntoView();
             document.querySelectorAll("article div[role=button] div[dir=auto]").forEach(o=>o.click());
