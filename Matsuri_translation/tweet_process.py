@@ -63,6 +63,7 @@ class TweetProcess:
             var ls=[];
             try{
             let clipText=[...document.querySelectorAll('article[data-testid=tweet] div[dir=auto][lang]')]
+                .filter(o=>o?.parentElement?.parentElement?.parentElement?.tabIndex<0)
                 .sort((a,b)=>a.getBoundingClientRect().bottom-b.getBoundingClientRect().bottom);
             let clipArticle=[...document.querySelectorAll('article')];
             ls=clipArticle.map(o=>{
