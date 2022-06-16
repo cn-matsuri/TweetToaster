@@ -109,12 +109,6 @@ def execute_event_auto(self, event):
             'template': event['template'],
             'out': 1
         }
-        param = {
-            'tweet': 'https://twitter.com/minatoaqua/status/1436546587400962058',
-            'template': '/template/onion.txt',
-            'translate': '##1\n1\n##2\n2',
-            'out': 1
-        }
         if event['translate'] != '':
             param['translate'] = event['translate']
         if 'noLikes' in event and event['noLikes']:
