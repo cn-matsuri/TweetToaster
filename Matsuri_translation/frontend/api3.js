@@ -336,6 +336,18 @@ function refresh_trans_div() {
                 .replace(/(^@[^ \n]+|\n@[^ \n]+| @[^ \n]+|^#[^ \n]*[^1234567890 \n][^ \n]*|\n#[^ \n]*[^1234567890 \n][^ \n]*| #[^ \n]*[^1234567890 \n][^ \n]*)/g, "<span class='link'>$1</span>")
                 .replace(/\n/g, "<br>")
                 .replace(/  /g, "&nbsp; ");
+            try {
+                const filterEmojis = s => runes(s).filter(o => twemoji.test(o));
+                const rw = '[CQ:face,id=13]';
+                const originalEmojis = filterEmojis(tweetpos[i].text);
+                const translatesEmojis = transtxt.split(rw).map(s => filterEmojis(s)).reduce((p, c) => [...p, undefined, ...c]);
+                originalEmojis.map((o, i) => translatesEmojis[i] ? undefined : o).filter(o => o).forEach(o => {
+                    transtxt = transtxt.replace(rw, o)
+                });
+
+            } catch (e) {
+            }
+
             var templateusing = template;
             if (isMultiMode) {
                 templateusing = templates[0].content;
