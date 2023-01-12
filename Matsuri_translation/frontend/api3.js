@@ -357,7 +357,13 @@ function refresh_trans_div() {
                     for (var j = 0; j < templates.length; j++)
                         if (templates[j].name == templatechosen[i]) templateusing = templates[j].content;
             }
-            $("#translatediv" + i).html(twemoji.parse(templateusing.replace("{T}", transtxt)));
+            try {
+                $("#translatediv" + i).html(twemoji.parse(templateusing.replace("{T}", transtxt), {base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/'}));
+            } catch {
+                $("#translatediv" + i).html((templateusing.replace("{T}", transtxt), {base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/'}));
+
+            }
+
         }
     }
     // $("#screenshots img.emoji").each(function(i,obj){
