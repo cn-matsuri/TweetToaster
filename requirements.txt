@@ -8,7 +8,7 @@ cffi==1.12.3
 Click==7.0
 cryptography==2.7
 fabric==2.4.0
-Flask==1.0.3
+Flask==2.2.5
 Flask-RESTful==0.3.7
 invoke==1.2.0
 itsdangerous==1.1.0
