@@ -247,8 +247,8 @@ chrome_auto_port=range(9224,9226)
 
 ```bash
 pm2 restart run
-pm2 start celery_run_twitter.sh
-pm2 start celery_run_auto.sh
+python3 -m pipenv run pm2 start celery_run_twitter.sh
+python3 -m pipenv run pm2 start celery_run_auto.sh
 pm2 stop celery_run
 ```
 
