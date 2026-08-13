@@ -269,17 +269,21 @@
       const include = document.createElement("input");
       include.type = "checkbox";
       include.checked = state.included[index];
-      include.setAttribute("aria-label", `包含第 ${index + 1} 条推文`);
+      include.setAttribute("aria-label", `包含 @${tweet.author.screenName} 的第 ${index + 1} 条推文`);
+      const originalWrap = document.createElement("div");
+      originalWrap.className = "original-wrap";
+      const originalMeta = document.createElement("div");
+      originalMeta.className = "original-meta";
+      originalMeta.textContent = `${tweet.author.name} · @${tweet.author.screenName}`;
       const original = document.createElement("div");
       original.className = "original";
       original.textContent = tweet.text;
-      header.append(include, original);
-      if (tweet.focal) {
-        const label = document.createElement("span");
-        label.className = "focal-label";
-        label.textContent = "目标推文";
-        header.append(label);
-      }
+      originalWrap.append(originalMeta, original);
+      const label = document.createElement("span");
+      label.className = `relation-label ${tweet.relation || "context"}`;
+      if (state.data.mode === "timeline" && index === 0) label.textContent = "最新";
+      else label.textContent = ({ target: "目标", reply: "回复", timeline: "主页", context: "上下文" })[tweet.relation] || "上下文";
+      header.append(include, originalWrap, label);
       const textarea = document.createElement("textarea");
       textarea.placeholder = "输入中文翻译（留空则只显示原文）";
       textarea.value = state.translations[index] || "";
@@ -298,18 +302,31 @@
     });
   }
 
+  function recommendedSelection(data) {
+    if (data.mode === "timeline") return data.tweets.map((_, index) => index < Math.min(3, data.tweets.length));
+    return data.tweets.map((tweet, index) => tweet.focal || index === data.focalIndex);
+  }
+
+  function setSelection(mode) {
+    if (!state.data) return;
+    if (mode === "all") state.included = state.data.tweets.map(() => true);
+    else if (mode === "none") state.included = state.data.tweets.map(() => false);
+    else state.included = recommendedSelection(state.data);
+    buildEditor();
+    renderPreview();
+  }
+
   function loadData(data) {
     state.data = data;
     state.botMode = false;
     state.focalIndex = data.focalIndex;
     state.translations = data.tweets.map(() => "");
-    state.included = data.tweets.map((tweet, index) => tweet.focal || index === data.focalIndex);
-    if (data.tweets.length > 1) {
-      for (let i = 0; i <= data.focalIndex; i += 1) state.included[i] = true;
-    }
+    state.included = recommendedSelection(data);
     buildEditor();
     renderPreview();
-    $("#tweet-count").textContent = `${data.tweets.length} 条`;
+    const replyCount = data.tweets.filter((tweet) => tweet.relation === "reply").length;
+    $("#tweet-count").textContent = replyCount ? `${data.tweets.length} 条 · ${replyCount} 回复` : `${data.tweets.length} 条`;
+    $("#recommended-selection").textContent = data.mode === "timeline" ? "前 3 条" : "仅目标";
     $("#translation-panel").hidden = false;
     $("#style-panel").hidden = false;
     $("#action-bar").hidden = false;
@@ -319,7 +336,7 @@
     const button = $("#query-button");
     button.disabled = true;
     button.textContent = "读取中…";
-    setStatus("正在读取推文，这通常只需要几秒钟。");
+    setStatus("正在读取公开主页、上下文和回复，这通常只需要几秒钟。");
     try {
       const response = await fetch("/api/tweet", {
         method: "POST",
@@ -331,7 +348,7 @@
       loadData(payload);
       setStatus("");
     } catch (error) {
-      setStatus(error.message || "无法读取这条推文", "error");
+      setStatus(error.message || "无法读取这个主页或推文", "error");
     } finally {
       button.disabled = false;
       button.textContent = "查询";
@@ -351,19 +368,57 @@
     if (document.fonts?.ready) await document.fonts.ready;
   }
 
+  function delay(milliseconds) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  }
+
+  async function waitForTask(taskId) {
+    for (let attempt = 0; attempt < 240; attempt += 1) {
+      const response = await fetch(`/api/get_task=${encodeURIComponent(taskId)}`, { cache: "no-store" });
+      const task = await response.json();
+      if (!response.ok) throw new Error(task?.error?.message || "无法查询出图任务");
+      if (task.state === "SUCCESS") return task.result;
+      if (task.state === "FAILURE") throw new Error(task.error || "服务端生成图片失败");
+      await delay(250);
+    }
+    throw new Error("图片生成超时，请稍后重试");
+  }
+
   async function downloadPng() {
     const button = $("#download-button");
+    const selection = state.data.tweets.flatMap((tweet, index) => state.included[index]
+      ? [{ id: tweet.id, translation: state.translations[index] || "" }]
+      : []);
+    if (!selection.length) {
+      setStatus("请先勾选至少一条要出图的推文。", "error");
+      return;
+    }
     button.disabled = true;
     button.textContent = "正在生成…";
     try {
-      await waitForImages($("#capture"));
-      const canvas = await window.html2canvas($("#capture"), {
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        scale: 2,
-        logging: false
+      setStatus("服务端正在用与预览相同的 Chromium 页面生成 2x PNG…");
+      const created = await fetch("/api/render", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          tweet: state.data.query?.canonicalUrl || state.data.canonicalUrl,
+          selection,
+          template: state.template,
+          noLikes: !state.showCounts,
+          logo: state.logo,
+          customLogo: state.logo === "custom" ? state.customLogo : "",
+          fontSize: state.fontSize
+        })
       });
-      canvas.toBlob((blob) => window.saveAs(blob, `TweetToaster-${state.data.id}.png`), "image/png");
+      const payload = await created.json();
+      if (!created.ok) throw new Error(payload?.error?.message || "无法创建出图任务");
+      const filename = await waitForTask(payload.task_id);
+      const imageResponse = await fetch(`/cache/${encodeURIComponent(filename)}.png`, { cache: "no-store" });
+      if (!imageResponse.ok) throw new Error("生成的图片暂时无法下载");
+      const blob = await imageResponse.blob();
+      const source = state.data.query?.screenName || state.data.id;
+      window.saveAs(blob, `TweetToaster-${source}-${state.data.id}.png`);
+      setStatus("");
     } catch (error) {
       setStatus(`图片生成失败：${error.message}`, "error");
     } finally {
@@ -396,10 +451,19 @@
     state.botMode = true;
     state.focalIndex = payload.data.focalIndex;
     state.logo = payload.logo || "official";
+    state.customLogo = payload.customLogo || "";
+    state.fontSize = Number(payload.fontSize) || 26;
     state.showCounts = !payload.noLikes;
     state.template = payload.template || "";
-    state.translations = parseBotTranslations(payload.translate, payload.data.focalIndex, payload.data.tweets.length);
-    state.included = payload.data.tweets.map((tweet, index) => tweet.focal || index <= payload.data.focalIndex);
+    if (Array.isArray(payload.selection)) {
+      const selected = new Map(payload.selection.map((item) => [String(item.id), String(item.translation || "")]));
+      state.translations = payload.data.tweets.map((tweet) => selected.get(tweet.id) || "");
+      state.included = payload.data.tweets.map((tweet) => selected.has(tweet.id));
+      if (!state.included.some(Boolean)) throw new Error("选中的推文已不在当前公开数据中，请重新查询");
+    } else {
+      state.translations = parseBotTranslations(payload.translate, payload.data.focalIndex, payload.data.tweets.length);
+      state.included = payload.data.tweets.map((tweet, index) => tweet.focal || index <= payload.data.focalIndex);
+    }
     if (/^https:\/\//.test(state.template)) state.template = "";
     renderPreview();
     await waitForImages($("#capture"));
@@ -458,6 +522,9 @@
     $("#font-size-select").addEventListener("change", (event) => { state.fontSize = Number(event.target.value); renderPreview(); });
     $("#show-counts").addEventListener("change", (event) => { state.showCounts = event.target.checked; renderPreview(); });
     $("#template-input").addEventListener("input", (event) => { state.template = event.target.value; renderPreview(); });
+    $("#select-all").addEventListener("click", () => setSelection("all"));
+    $("#recommended-selection").addEventListener("click", () => setSelection("recommended"));
+    $("#select-none").addEventListener("click", () => setSelection("none"));
     $("#download-button").addEventListener("click", downloadPng);
     $("#reset-button").addEventListener("click", reset);
     $("#show-settings").addEventListener("click", () => $("#settings-pane").classList.add("open"));

@@ -68,14 +68,14 @@ export class BotRenderer {
   async #render(payload) {
     await this.start();
     await this.#pruneCache();
-    const page = await this.browser.newPage({ viewport: { width: 720, height: 2000 }, deviceScaleFactor: 1 });
+    const page = await this.browser.newPage({ viewport: { width: 720, height: 2000 }, deviceScaleFactor: 2 });
     try {
       await page.goto(`${this.origin}/?render=1`, { waitUntil: "networkidle", timeout: 30000 });
       await page.evaluate((data) => window.TweetToaster.renderForBot(data), payload);
       await page.waitForFunction(() => window.__tweetToasterReady === true, null, { timeout: 30000 });
       const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const output = path.join(this.cacheDir, `${filename}.png`);
-      await page.locator("#capture").screenshot({ path: output, type: "png" });
+      await page.locator("#capture").screenshot({ path: output, type: "png", animations: "disabled" });
       return filename;
     } finally {
       await page.close();

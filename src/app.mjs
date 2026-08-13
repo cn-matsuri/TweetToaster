@@ -119,14 +119,59 @@ async function readLocalTemplate(value, publicDir, maxBytes = 64 * 1024) {
 
 function validateAutoEvent(event) {
   if (!event || typeof event !== "object") throw new TweetProviderError("缺少任务内容", { status: 400 });
-  if (typeof event.tweet !== "string") throw new TweetProviderError("缺少 tweet 链接", { status: 400 });
+  if (typeof event.tweet !== "string") throw new TweetProviderError("缺少 tweet 输入", { status: 400 });
   return {
     tweet: event.tweet,
     translate: typeof event.translate === "string" ? event.translate : "",
     template: typeof event.template === "string" ? event.template : "",
     noLikes: Boolean(event.noLikes),
-    logo: typeof event.logo === "string" ? event.logo : "official"
+    logo: typeof event.logo === "string" ? event.logo : "official",
+    customLogo: typeof event.customLogo === "string" ? event.customLogo : "",
+    fontSize: Number(event.fontSize) || 26,
+    selection: validateSelection(event.selection, { optional: true })
   };
+}
+
+function validateSelection(value, { optional = false } = {}) {
+  if (value == null && optional) return null;
+  if (!Array.isArray(value) || value.length < 1 || value.length > 30) {
+    throw new TweetProviderError("请至少选择一条、最多选择 30 条推文", { status: 400, code: "INVALID_SELECTION" });
+  }
+  const seen = new Set();
+  return value.map((item) => {
+    const id = String(item?.id || "");
+    const translation = typeof item?.translation === "string" ? item.translation : "";
+    if (!/^\d{2,20}$/.test(id) || seen.has(id) || translation.length > 10000) {
+      throw new TweetProviderError("选中的推文或翻译内容无效", { status: 400, code: "INVALID_SELECTION" });
+    }
+    seen.add(id);
+    return { id, translation };
+  });
+}
+
+function validateRenderEvent(event) {
+  const normalized = validateAutoEvent(event);
+  normalized.selection = validateSelection(event.selection);
+  if (normalized.template.length > 64 * 1024) {
+    throw new TweetProviderError("模板文件过大", { status: 413, code: "TEMPLATE_TOO_LARGE" });
+  }
+  if (!new Set(["official", "keke", "magic", "none", "custom"]).has(normalized.logo)) {
+    throw new TweetProviderError("Logo 选项无效", { status: 400, code: "INVALID_LOGO" });
+  }
+  if (normalized.logo === "custom" && !/^data:image\/(?:png|jpeg|webp);base64,/i.test(normalized.customLogo)) {
+    throw new TweetProviderError("自定义 Logo 仅支持 PNG、JPEG 或 WebP", { status: 400, code: "INVALID_LOGO" });
+  }
+  if (normalized.customLogo.length > 3 * 1024 * 1024) {
+    throw new TweetProviderError("自定义 Logo 请控制在 2 MB 以内", { status: 413, code: "LOGO_TOO_LARGE" });
+  }
+  normalized.fontSize = Math.min(36, Math.max(18, normalized.fontSize));
+  return normalized;
+}
+
+async function resolveTemplate(value, { fetchImpl, publicDir }) {
+  if (/^https:\/\//i.test(value)) return fetchTemplate(value, { fetchImpl });
+  if (/^(?:\/?template\/|\/).+\.txt$/i.test(value)) return readLocalTemplate(value, publicDir);
+  return value;
 }
 
 export function createTweetToasterServer({
@@ -134,6 +179,7 @@ export function createTweetToasterServer({
   jobs,
   renderBot,
   publicDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../Matsuri_translation/frontend"),
+  cacheDir = path.join(publicDir, "cache"),
   fetchImpl = globalThis.fetch
 }) {
   if (!provider || !jobs || !renderBot) throw new Error("provider、jobs 和 renderBot 均为必填项");
@@ -147,7 +193,7 @@ export function createTweetToasterServer({
 
       if (request.method === "POST" && requestUrl.pathname === "/api/tweet") {
         const body = await readJson(request);
-        const data = await provider.fetchTweet(body.url);
+        const data = await provider.fetchTweet(body.url ?? body.input);
         return json(response, 200, data);
       }
 
@@ -155,9 +201,17 @@ export function createTweetToasterServer({
         const event = validateAutoEvent(await readJson(request));
         const taskId = jobs.add(async () => {
           const data = await provider.fetchTweet(event.tweet);
-          let template = event.template;
-          if (/^https:\/\//i.test(template)) template = await fetchTemplate(template, { fetchImpl });
-          else if (/^(?:\/?template\/|\/).+\.txt$/i.test(template)) template = await readLocalTemplate(template, publicDir);
+          const template = await resolveTemplate(event.template, { fetchImpl, publicDir });
+          return renderBot({ data, ...event, template });
+        });
+        return json(response, 200, { task_id: taskId });
+      }
+
+      if (request.method === "POST" && requestUrl.pathname === "/api/render") {
+        const event = validateRenderEvent(await readJson(request, 4 * 1024 * 1024));
+        const taskId = jobs.add(async () => {
+          const data = await provider.fetchTweet(event.tweet);
+          const template = await resolveTemplate(event.template, { fetchImpl, publicDir });
           return renderBot({ data, ...event, template });
         });
         return json(response, 200, { task_id: taskId });
@@ -190,6 +244,11 @@ export function createTweetToasterServer({
           "cache-control": image.cacheControl
         });
         return response.end(image.bytes);
+      }
+
+      if ((request.method === "GET" || request.method === "HEAD") && requestUrl.pathname.startsWith("/cache/") &&
+          await serveStatic(requestUrl.pathname.slice("/cache".length), response, cacheDir)) {
+        return;
       }
 
       if ((request.method === "GET" || request.method === "HEAD") && await serveStatic(requestUrl.pathname, response, publicDir)) {

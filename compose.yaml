@@ -1,12 +1,13 @@
 services:
   tweet-toaster:
-    build: .
+    image: ghcr.io/cn-matsuri/tweettoaster:${TWEETTOASTER_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     ports:
       - "127.0.0.1:8082:8082"
     environment:
       PORT: "8082"
-      TWEET_PROVIDER_URL: "https://api.fxtwitter.com/2/status"
+      TWEET_PROVIDER_URL: "https://api.fxtwitter.com/2"
     volumes:
       - tweet-cache:/app/Matsuri_translation/frontend/cache
     shm_size: "512mb"

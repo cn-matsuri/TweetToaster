@@ -1,43 +1,51 @@
 # TweetToaster 烤推机
 
-把公开的 X/Twitter 推文做成带中文翻译和翻译组 Logo 的 640px PNG。这个版本重写了 2019 年的 Selenium + Celery 实现：网页和 Bot 共享同一套卡片渲染器，不再依赖 X 的页面 DOM，也不需要购买 X API。
+<p align="center">
+  <img src="Matsuri_translation/frontend/img/brand-logo.png" width="112" alt="夏色祭工坊">
+</p>
 
-## 能做什么
+把公开的 X/Twitter 推文做成带中文翻译和翻译组 Logo 的 PNG。新版保留旧 Bot 协议和自定义模板，不购买 X API，也不依赖经常变化的 X 页面 DOM。
 
-- 接受 `x.com`、`twitter.com`、`mobile.twitter.com` 的推文永久链接
-- 展示目标推文及数据源返回的同作者线程上下文
-- 为每条推文选择是否出图、填写独立翻译
-- 内置三种旧版 Logo，支持上传自定义 Logo
-- 支持自定义 `{T}` HTML 翻译模板（会过滤脚本和危险属性）
-- 浏览器下载 2x PNG
+> 页头的工坊图标只用于 TweetToaster 自身品牌。导出图片中的翻译组 Logo 始终由使用者单独选择或上传，两者互不覆盖。
+
+## 功能
+
+- 接受 `suisei_hosimati`、`@suisei_hosimati`、`x.com/suisei_hosimati` 等主页输入
+- 接受带或不带 `https://` 的 `x.com/.../status/...`、`twitter.com/.../status/...` 单推链接
+- 主页模式列出多条近期公开推文，默认预览前三条，可任意勾选
+- 单推模式同时列出上下文、目标推文和其他用户回复，可逐条选择、逐条翻译
+- 保留三个旧版翻译组 Logo、自定义 Logo 与 `{T}` HTML 翻译模板
+- 预览和下载共用 Chromium 渲染面；导出为 640 CSS px / 1280 实际像素的 2x PNG
 - 兼容旧 Bot 的 `/api/auto` + `/api/get_task=<id>` 异步协议
-- 支持用环境变量切换到自建 FxEmbed 实例
+- 默认使用免费公开的 FxTwitter/FxEmbed API，可切换到自建实例
 
-## 本地运行
+## 直接部署预构建镜像
 
-需要 Node.js 22+ 和 Chrome/Chromium。
+镜像由 GitHub Actions 发布到 GHCR，不需要在服务器现场构建：
 
 ```bash
-corepack enable
-pnpm install
-pnpm test
-pnpm start
+docker run -d \
+  --name tweettoaster \
+  --restart unless-stopped \
+  --shm-size=512m \
+  -p 127.0.0.1:8082:8082 \
+  -v tweet-cache:/app/Matsuri_translation/frontend/cache \
+  ghcr.io/cn-matsuri/tweettoaster:latest
 ```
 
-打开 <http://localhost:8082>。macOS 会自动查找 Chrome；Linux/Docker 默认使用 Chromium。也可以显式设置：
+仓库内的 Compose 文件同样只拉镜像：
 
 ```bash
-CHROMIUM_PATH=/path/to/chromium PORT=8082 pnpm start
-```
-
-## Docker 部署
-
-```bash
-docker compose up --build -d
+docker compose pull
+docker compose up -d
 curl http://127.0.0.1:8082/api/health
 ```
 
-在 Nginx/Caddy/Cloudflare Tunnel 中把域名反代到 `127.0.0.1:8082` 即可。`compose.yaml` 默认只监听本机，避免绕过反向代理直接暴露端口。
+每个同仓库 PR 还会发布 `pr-<编号>` 测试标签；合并到 `master` 后发布 `latest`，版本 tag 会发布同名镜像标签。
+
+镜像清单同时包含 `linux/amd64` 与 `linux/arm64`。它可以直接运行在 Linux Docker，以及 macOS/Windows 的 Docker Desktop；这是 Linux 容器，不是 Windows 原生容器。
+
+在 Nginx、Caddy 或 Cloudflare Tunnel 中把域名反代到 `127.0.0.1:8082` 即可。默认只监听本机，避免绕过反向代理直接暴露端口。
 
 ### 环境变量
 
@@ -45,10 +53,12 @@ curl http://127.0.0.1:8082/api/health
 | --- | --- | --- |
 | `PORT` | `8082` | HTTP 端口 |
 | `HOST` | `0.0.0.0` | 监听地址 |
-| `CHROMIUM_PATH` | 自动发现 | Bot 截图使用的 Chromium |
-| `TWEET_PROVIDER_URL` | `https://api.fxtwitter.com/2/status` | 免费推文数据源；可指向自建 FxEmbed |
+| `CHROMIUM_PATH` | 自动发现 | Bot/下载截图使用的 Chromium；镜像内已配置 |
+| `TWEET_PROVIDER_URL` | `https://api.fxtwitter.com/2` | 免费推文数据源根地址；也可指向自建 FxEmbed |
 | `TWEET_PROVIDER_TIMEOUT_MS` | `15000` | 数据源超时毫秒数 |
-| `TEMPLATE_ALLOWED_HOSTS` | `tweet.wudifeixue.com,raw.githubusercontent.com` | 允许 Bot 服务端下载模板的域名白名单，逗号分隔 |
+| `TWEET_TIMELINE_COUNT` | `12` | 主页最多显示的近期推文数，范围 1–20 |
+| `TWEET_REPLY_COUNT` | `20` | 单推最多显示的回复数，范围 0–30 |
+| `TEMPLATE_ALLOWED_HOSTS` | `tweet.wudifeixue.com,raw.githubusercontent.com` | Bot 可下载模板的 HTTPS 域名白名单 |
 
 ## Bot API 兼容
 
@@ -67,9 +77,9 @@ Content-Type: application/json
 }
 ```
 
-返回 `200 {"task_id":"..."}`。轮询 `GET /api/get_task=<task_id>`。成功时 `state` 为 `SUCCESS`，`result` 是文件名；图片仍位于 `/cache/<result>.png`。
+返回 `200 {"task_id":"..."}`。轮询 `GET /api/get_task=<task_id>`；成功时 `state` 为 `SUCCESS`，`result` 是文件名，图片位于 `/cache/<result>.png`。
 
-多条翻译沿用旧格式：
+旧 Bot 的多条翻译格式继续可用：
 
 ```text
 ##1
@@ -78,22 +88,63 @@ Content-Type: application/json
 第二条翻译
 ```
 
-`template` 可留空、直接传模板 HTML、传 `/template/name.txt` 本地路径，或传 HTTPS 模板地址。远程模板限制为 64 KB，且拒绝内网地址。
+`tweet` 现在也可以传主页或用户名。`template` 可留空、直接传模板 HTML、传 `/template/name.txt` 本地路径，或传白名单内的 HTTPS 模板地址。远程模板限制为 64 KB，并拒绝内网地址。
 
-旧模板仍可挂载在原路径。把 [toastTemplates](https://github.com/cn-matsuri/toastTemplates) 的内容放到 `Matsuri_translation/frontend/template/`（该目录已被 Git 忽略），原来的 `/template/*.txt` Bot 参数和 `?template=/template/*.txt` 网页链接就会继续工作。模板文件中的多样式注释格式也继续支持；默认使用第一种样式，多推文 Bot 翻译会沿用旧行为对非目标推文使用第二种样式。
+把 [toastTemplates](https://github.com/cn-matsuri/toastTemplates) 放到 `Matsuri_translation/frontend/template/`（该目录已被 Git 忽略），原来的 `/template/*.txt` Bot 参数和 `?template=/template/*.txt` 网页链接可以继续使用。旧模板的多样式注释格式也仍兼容。
+
+## 本地开发与测试
+
+需要 Node.js 22+ 和 Chrome/Chromium：
+
+```bash
+corepack enable
+pnpm install
+pnpm test
+pnpm start
+```
+
+打开 <http://localhost:8082>。真实免费数据源回归测试单独运行：
+
+```bash
+pnpm test:live
+```
+
+PR 会执行单元测试、浏览器下载回归、依赖审计，以及 amd64/arm64 镜像构建。下载回归会检查翻译组 Logo 的显示宽高比与源图一致，防止再次发生预览正常、下载拉伸。
 
 ## 数据源与费用
 
-默认使用免费的 FxTwitter/FxEmbed 公共 API，不需要密钥或付费 X API。公共服务可能调整限流或可用性；长期部署建议自行托管 FxEmbed，再修改 `TWEET_PROVIDER_URL`，本项目无需改代码。
+默认数据来自免费的 [FxEmbed/FxTwitter](https://github.com/FxEmbed/FxEmbed) 公开 API，不需要 API Key，不接入任何付费 X API。公共实例可能调整限流或可用性；长期部署可自建 FxEmbed，再修改 `TWEET_PROVIDER_URL`，TweetToaster 本身无需改代码。
 
-## 测试
+---
 
-```bash
-pnpm test
-```
+## 旧版项目记忆（保留）
 
-单元测试覆盖 URL 兼容、数据归一化、HTTP API 与旧 Bot 任务协议。PR 合并前还应执行真实公开推文的集成测试和浏览器视觉检查。
+### 简介
 
-## 致谢
+这个烤肉机，其实是个推特嵌字机。
 
-项目最初由夏色祭工坊社区共同完成，感谢 [FzXiao](https://github.com/fzxiao233)、[飞雪](https://github.com/wudifeixue)、[鱼鱼](https://github.com/yuyuyzl) 以及历年来的所有贡献者。新版的免费公开推文数据能力由 [FxEmbed/FxTwitter](https://github.com/FxEmbed/FxEmbed) 提供。
+出现的初衷因该是，嵌字这件事儿，大家都爱不动了。
+
+来回 P 图一样的东西，有些伤不起啊。
+
+于是，为了解决重复性工作，工坊招了程序员，也终于搞出来了这个项目。
+
+此项目主要感谢以下贡献者：
+
+- [FzXiao](https://github.com/fzxiao233) · [B 站](https://space.bilibili.com/2387011)
+- [飞雪](https://github.com/wudifeixue) · [B 站](http://space.bilibili.com/739848)
+- [鱼鱼](https://github.com/yuyuyzl) · [B 站](https://space.bilibili.com/1534590)
+
+![旧版使用演示](tt_how_to_use.gif)
+
+### 发布文章 / Blog
+
+[庆贺吧，这是集数码暴龙与嵌字 man 力量于一身的烤推机](https://www.bilibili.com/read/cv3081959)
+
+旧版使用方法：打开烤肉机后，输入需要查询的推特永久链接；查询、输入翻译内容，满意后下载图片。模板可以完全自定义，自己写 HTML 即可。
+
+烤肉机模板源码地址：[cn-matsuri/toastTemplates](https://github.com/cn-matsuri/toastTemplates)
+
+### 使用感想 / Testimonial
+
+![茶铺使用感想](testimonial.png "茶铺使用感想")

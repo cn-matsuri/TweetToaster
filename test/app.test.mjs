@@ -51,6 +51,50 @@ test("legacy bot contract creates and polls a render job", () => withServer(asyn
   assert.equal(calls[1].noLikes, true);
 }));
 
+test("browser render contract preserves exact selection and custom render settings", () => withServer(async ({ origin, calls }) => {
+  const created = await fetch(`${origin}/api/render`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      tweet: "minatoaqua",
+      selection: [{ id: "1383771374183878658", translation: "精确翻译" }],
+      template: "",
+      noLikes: false,
+      logo: "none",
+      fontSize: 30
+    })
+  });
+  assert.equal(created.status, 200);
+  const { task_id: taskId } = await created.json();
+  let job;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    job = await fetch(`${origin}/api/get_task=${taskId}`).then((r) => r.json());
+    if (job.state === "SUCCESS") break;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  assert.equal(job.state, "SUCCESS");
+  assert.deepEqual(calls[1].selection, [{ id: "1383771374183878658", translation: "精确翻译" }]);
+  assert.equal(calls[1].fontSize, 30);
+}));
+
+test("browser render contract rejects empty selections and unsafe custom logos", () => withServer(async ({ origin }) => {
+  const empty = await fetch(`${origin}/api/render`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tweet: "minatoaqua", selection: [] })
+  });
+  assert.equal(empty.status, 400);
+
+  const unsafeLogo = await fetch(`${origin}/api/render`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      tweet: "minatoaqua",
+      selection: [{ id: "1383771374183878658", translation: "" }],
+      logo: "custom",
+      customLogo: "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4="
+    })
+  });
+  assert.equal(unsafeLogo.status, 400);
+}));
+
 test("invalid JSON is rejected with a useful error", () => withServer(async ({ origin }) => {
   const response = await fetch(`${origin}/api/tweet`, { method: "POST", headers: { "content-type": "application/json" }, body: "not-json" });
   assert.equal(response.status, 400);

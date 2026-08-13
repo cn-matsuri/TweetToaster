@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f8fa">
   <title>烤推机 · TweetToaster</title>
+  <link rel="icon" type="image/png" href="img/brand-logo.png">
   <link rel="stylesheet" href="index.css">
-  <script defer src="html2canvas.js"></script>
   <script defer src="FileSaver.min.js"></script>
   <script defer src="api3.js"></script>
 </head>
@@ -37,7 +37,7 @@
     <aside class="settings-pane" id="settings-pane">
       <div class="settings-scroll">
         <header class="brand">
-          <div class="brand-mark">烤</div>
+          <img class="brand-mark" src="img/brand-logo.png" alt="夏色祭工坊">
           <div>
             <h1>烤推机</h1>
             <p>TweetToaster · 重新开炉</p>
@@ -46,13 +46,13 @@
         </header>
 
         <form id="tweet-form" class="query-form">
-          <label for="tweet-url">推文永久链接</label>
+          <label for="tweet-url">X 主页、@用户名或推文链接</label>
           <div class="query-row">
-            <input id="tweet-url" name="url" type="url" inputmode="url"
-              placeholder="https://x.com/user/status/123…" autocomplete="off" required>
+            <input id="tweet-url" name="url" type="text" inputmode="url"
+              placeholder="suisei_hosimati 或 x.com/user/status/123…" autocomplete="off" required>
             <button class="primary-button" id="query-button" type="submit">查询</button>
           </div>
-          <p class="field-help">支持 x.com、twitter.com 和 mobile.twitter.com</p>
+          <p class="field-help">支持用户名、@用户名和主页/单推链接，不用手打 https://</p>
         </form>
 
         <div id="status" class="status" hidden role="status"></div>
@@ -65,6 +65,11 @@
             </div>
             <span class="count-badge" id="tweet-count"></span>
           </div>
+          <div class="selection-actions" aria-label="批量选择">
+            <button class="mini-button" id="recommended-selection" type="button">仅目标</button>
+            <button class="mini-button" id="select-all" type="button">全选</button>
+            <button class="mini-button" id="select-none" type="button">清空</button>
+          </div>
           <div id="translation-list" class="translation-list"></div>
         </section>
 
@@ -72,7 +77,7 @@
           <div class="panel-heading">
             <div>
               <h2>落款与模板</h2>
-              <p>Logo 会自动放在每段翻译上方。</p>
+              <p>这里选择的是翻译图片落款，与烤推机自己的品牌 Logo 无关。</p>
             </div>
           </div>
           <div class="field-grid">
@@ -95,7 +100,7 @@
               </select>
             </label>
           </div>
-          <input id="custom-logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+          <input id="custom-logo" type="file" accept="image/png,image/jpeg,image/webp" hidden>
           <label class="check-row">
             <input id="show-counts" type="checkbox" checked>
             <span>显示回复、转发和点赞数</span>
@@ -114,7 +119,7 @@
         </div>
 
         <footer>
-          数据仅用于生成图片；服务端不保存翻译内容。由公开推文数据源驱动。
+          数据仅用于生成图片；PNG 缓存会自动清理。由免费的公开推文数据源驱动。
         </footer>
       </div>
     </aside>

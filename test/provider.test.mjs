@@ -1,20 +1,38 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { FxTwitterProvider, isPrivateHostname, normalizeProviderResponse, parseTweetUrl, TweetProviderError } from "../src/provider.mjs";
-import { providerPayload } from "./fixtures.mjs";
+import {
+  FxTwitterProvider,
+  isPrivateHostname,
+  normalizeConversationResponse,
+  normalizeProviderResponse,
+  normalizeTimelineResponse,
+  parseTweetInput,
+  parseTweetUrl,
+  TweetProviderError
+} from "../src/provider.mjs";
+import { conversationPayload, providerPayload, timelinePayload } from "./fixtures.mjs";
 import { MemoryJobQueue } from "../src/jobs.mjs";
 
 test("parseTweetUrl accepts current and legacy X hosts", () => {
   for (const url of [
     "https://x.com/minatoaqua/status/1383771374183878658?s=20",
     "https://twitter.com/minatoaqua/status/1383771374183878658",
-    "https://mobile.twitter.com/minatoaqua/status/1383771374183878658"
+    "https://mobile.twitter.com/minatoaqua/status/1383771374183878658",
+    "x.com/minatoaqua/status/1383771374183878658"
   ]) assert.equal(parseTweetUrl(url).id, "1383771374183878658");
 });
 
-test("parseTweetUrl rejects profiles and unrelated hosts", () => {
-  for (const url of ["https://x.com/minatoaqua", "https://example.com/user/status/123"]) {
-    assert.throws(() => parseTweetUrl(url), TweetProviderError);
+test("parseTweetInput accepts profiles, bare handles, and @handles without a protocol", () => {
+  for (const input of ["https://x.com/suisei_hosimati", "x.com/suisei_hosimati", "suisei_hosimati", "@suisei_hosimati"]) {
+    const parsed = parseTweetInput(input);
+    assert.equal(parsed.kind, "profile");
+    assert.equal(parsed.screenName, "suisei_hosimati");
+  }
+});
+
+test("parser rejects unrelated hosts and reserved X pages", () => {
+  for (const input of ["https://example.com/user/status/123", "x.com/home", "not a handle"]) {
+    assert.throws(() => parseTweetInput(input), TweetProviderError);
   }
 });
 
@@ -27,19 +45,51 @@ test("normalizer returns a stable renderer model", () => {
   assert.equal(value.tweets[0].focal, true);
 });
 
+test("conversation normalizer exposes replies as independently selectable rows", () => {
+  const parsed = parseTweetUrl("x.com/minatoaqua/status/1383771374183878658");
+  const value = normalizeConversationResponse(conversationPayload(), parsed);
+  assert.equal(value.mode, "conversation");
+  assert.equal(value.tweets.length, 2);
+  assert.equal(value.tweets[0].relation, "target");
+  assert.equal(value.tweets[1].relation, "reply");
+  assert.equal(value.tweets[1].replyingTo, "minatoaqua");
+});
+
+test("timeline normalizer returns several recent posts", () => {
+  const parsed = parseTweetInput("suisei_hosimati");
+  const value = normalizeTimelineResponse(timelinePayload(), parsed);
+  assert.equal(value.mode, "timeline");
+  assert.equal(value.tweets.length, 2);
+  assert.equal(value.query.screenName, "suisei_hosimati");
+});
+
 test("provider identifies itself and supports an override base URL", async () => {
   let request;
   const provider = new FxTwitterProvider({
-    baseUrl: "https://provider.example/status/",
+    baseUrl: "https://provider.example/2/status/",
     fetchImpl: async (url, options) => {
       request = { url, options };
-      return new Response(JSON.stringify(providerPayload()), { status: 200, headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify(conversationPayload()), { status: 200, headers: { "content-type": "application/json" } });
     }
   });
   const result = await provider.fetchTweet("https://x.com/minatoaqua/status/1383771374183878658");
-  assert.equal(request.url, "https://provider.example/status/1383771374183878658");
+  assert.equal(request.url, "https://provider.example/2/conversation/1383771374183878658?ranking_mode=likes");
   assert.match(request.options.headers["user-agent"], /TweetToaster/);
   assert.equal(result.id, "1383771374183878658");
+});
+
+test("provider uses the profile timeline endpoint for a bare handle", async () => {
+  let requestUrl;
+  const provider = new FxTwitterProvider({
+    baseUrl: "https://provider.example/2",
+    fetchImpl: async (url) => {
+      requestUrl = url;
+      return new Response(JSON.stringify(timelinePayload()), { status: 200, headers: { "content-type": "application/json" } });
+    }
+  });
+  const result = await provider.fetchTweet("@suisei_hosimati");
+  assert.match(requestUrl, /\/profile\/suisei_hosimati\/statuses\?count=12$/);
+  assert.equal(result.tweets.length, 2);
 });
 
 test("job queue rejects overload instead of growing without limit", () => {

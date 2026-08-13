@@ -18,25 +18,50 @@ export class TweetProviderError extends Error {
   }
 }
 
-const STATUS_URL = /^(?:https?:\/\/)?(?:www\.|mobile\.)?(?:x\.com|twitter\.com|fixupx\.com|fxtwitter\.com)\/([^/?#]+)\/status(?:es)?\/(\d+)(?:[/?#].*)?$/i;
+const SERVICE_HOST = "(?:www\\.|mobile\\.)?(?:x\\.com|twitter\\.com|fixupx\\.com|fxtwitter\\.com)";
+const STATUS_URL = new RegExp(`^(?:https?://)?${SERVICE_HOST}/([^/?#]+)/status(?:es)?/(\\d+)(?:[/?#].*)?$`, "i");
+const PROFILE_URL = new RegExp(`^(?:https?://)?${SERVICE_HOST}/@?([A-Za-z0-9_]{1,15})(?:[/?#].*)?$`, "i");
+const HANDLE = /^@?([A-Za-z0-9_]{1,15})$/;
+const RESERVED_PROFILE_PATHS = new Set(["compose", "explore", "home", "i", "intent", "messages", "notifications", "search", "settings"]);
 
-export function parseTweetUrl(value) {
+export function parseTweetInput(value) {
   if (typeof value !== "string") {
-    throw new TweetProviderError("请提供推文链接", { status: 400, code: "INVALID_URL" });
+    throw new TweetProviderError("请输入 X 用户名、主页或推文链接", { status: 400, code: "INVALID_INPUT" });
   }
   const input = value.trim();
-  const match = input.match(STATUS_URL);
-  if (!match) {
-    throw new TweetProviderError("仅支持 x.com 或 twitter.com 的推文永久链接", {
-      status: 400,
-      code: "INVALID_URL"
-    });
+  const statusMatch = input.match(STATUS_URL);
+  if (statusMatch) {
+    return {
+      kind: "status",
+      id: statusMatch[2],
+      screenName: statusMatch[1],
+      canonicalUrl: `https://x.com/${statusMatch[1]}/status/${statusMatch[2]}`
+    };
   }
-  return {
-    id: match[2],
-    screenName: match[1],
-    canonicalUrl: `https://x.com/${match[1]}/status/${match[2]}`
-  };
+
+  const profileMatch = input.match(PROFILE_URL) || input.match(HANDLE);
+  const screenName = profileMatch?.[1];
+  if (screenName && !RESERVED_PROFILE_PATHS.has(screenName.toLowerCase())) {
+    return {
+      kind: "profile",
+      id: null,
+      screenName,
+      canonicalUrl: `https://x.com/${screenName}`
+    };
+  }
+
+  throw new TweetProviderError("请输入 @用户名、X 主页，或具体推文链接；https:// 可以省略", {
+    status: 400,
+    code: "INVALID_INPUT"
+  });
+}
+
+export function parseTweetUrl(value) {
+  const parsed = parseTweetInput(value);
+  if (parsed.kind !== "status") {
+    throw new TweetProviderError("这里需要具体推文链接", { status: 400, code: "INVALID_URL" });
+  }
+  return parsed;
 }
 
 function numberOrZero(value) {
@@ -67,12 +92,19 @@ function normalizeAuthor(author = {}) {
   };
 }
 
-export function normalizeStatus(status, focalId) {
+export function normalizeStatus(status, focalId = "", relation = "context") {
   if (!status || status.type === "tombstone" || !status.id) return null;
+  const replyingTo = typeof status.replying_to === "object"
+    ? status.replying_to?.screen_name
+    : status.replying_to;
+  const replyingToStatusId = typeof status.replying_to === "object"
+    ? status.replying_to?.status
+    : status.replying_to_status;
   return {
     id: String(status.id),
     url: status.url || `https://x.com/i/status/${status.id}`,
     focal: String(status.id) === String(focalId),
+    relation: String(status.id) === String(focalId) ? "target" : relation,
     text: status.text || status.raw_text?.text || "",
     lang: status.lang || null,
     createdAt: status.created_at || null,
@@ -84,8 +116,9 @@ export function normalizeStatus(status, focalId) {
       views: status.views == null ? null : numberOrZero(status.views)
     },
     media: normalizeMedia(status.media),
-    quote: status.quote ? normalizeStatus(status.quote, "") : null,
-    replyingTo: status.replying_to?.screen_name || status.replying_to || null
+    quote: status.quote ? normalizeStatus(status.quote, "", "quote") : null,
+    replyingTo: replyingTo || null,
+    replyingToStatusId: replyingToStatusId ? String(replyingToStatusId) : null
   };
 }
 
@@ -98,48 +131,128 @@ function uniqueStatuses(statuses) {
   });
 }
 
-export function normalizeProviderResponse(payload, parsed) {
-  if (!payload || payload.code !== 200 || !payload.status) {
-    const message = payload?.message || "推文不存在、已删除或暂时无法读取";
-    throw new TweetProviderError(message, { status: 404, code: "TWEET_NOT_FOUND" });
-  }
-  const thread = Array.isArray(payload.thread) ? payload.thread : [];
-  const normalized = uniqueStatuses([
-    ...thread.map((item) => normalizeStatus(item, parsed.id)),
-    normalizeStatus(payload.status, parsed.id)
-  ]);
-  normalized.sort((a, b) => {
+function chronological(statuses) {
+  return [...statuses].sort((a, b) => {
     const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
     const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
     return ta - tb;
   });
+}
+
+function assertStatusPayload(payload) {
+  if (!payload || payload.code !== 200 || !payload.status) {
+    const message = payload?.message || "推文不存在、已删除或暂时无法读取";
+    throw new TweetProviderError(message, { status: 404, code: "TWEET_NOT_FOUND" });
+  }
+}
+
+export function normalizeProviderResponse(payload, parsed) {
+  assertStatusPayload(payload);
+  const thread = Array.isArray(payload.thread) ? payload.thread : [];
+  const normalized = chronological(uniqueStatuses([
+    ...thread.map((item) => normalizeStatus(item, parsed.id, "context")),
+    normalizeStatus(payload.status, parsed.id, "context")
+  ]));
   const focalIndex = normalized.findIndex((item) => item.focal);
   return {
     id: parsed.id,
     canonicalUrl: payload.status.url || parsed.canonicalUrl,
+    mode: "conversation",
+    query: { kind: "status", screenName: parsed.screenName, canonicalUrl: parsed.canonicalUrl },
     focalIndex: focalIndex >= 0 ? focalIndex : Math.max(0, normalized.length - 1),
     tweets: normalized
   };
 }
 
+export function normalizeConversationResponse(payload, parsed, { maxReplies = 20 } = {}) {
+  assertStatusPayload(payload);
+  const thread = Array.isArray(payload.thread) ? payload.thread : [];
+  const replies = Array.isArray(payload.replies) ? payload.replies : [];
+  const context = chronological(uniqueStatuses([
+    ...thread.map((item) => normalizeStatus(item, parsed.id, "context")),
+    normalizeStatus(payload.status, parsed.id, "context")
+  ]));
+  const seen = new Set(context.map((tweet) => tweet.id));
+  const normalizedReplies = uniqueStatuses(replies
+    .map((item) => normalizeStatus(item, parsed.id, "reply")))
+    .filter((item) => item && !seen.has(item.id))
+    .slice(0, maxReplies);
+  const tweets = [...context, ...normalizedReplies];
+  const focalIndex = tweets.findIndex((item) => item.focal);
+  return {
+    id: parsed.id,
+    canonicalUrl: payload.status.url || parsed.canonicalUrl,
+    mode: "conversation",
+    query: { kind: "status", screenName: parsed.screenName, canonicalUrl: parsed.canonicalUrl },
+    focalIndex: focalIndex >= 0 ? focalIndex : 0,
+    tweets
+  };
+}
+
+function flattenTimelineResults(results) {
+  return results.flatMap((item) => {
+    if (!item || item.type === "tombstone") return [];
+    if (item.type !== "thread") return [item];
+    return [...(Array.isArray(item.thread) ? item.thread : []), item.status].filter(Boolean);
+  });
+}
+
+export function normalizeTimelineResponse(payload, parsed, { maxStatuses = 12 } = {}) {
+  const results = Array.isArray(payload?.results) ? flattenTimelineResults(payload.results) : [];
+  const raw = uniqueStatuses(results.map((item) => item?.id ? { id: String(item.id), raw: item } : null))
+    .map((item) => item.raw)
+    .slice(0, maxStatuses);
+  if (payload?.code !== 200 || !raw.length) {
+    throw new TweetProviderError(payload?.message || "该主页暂时没有可读取的公开推文", {
+      status: 404,
+      code: "TIMELINE_NOT_FOUND"
+    });
+  }
+  const focalId = String(raw[0].id);
+  const tweets = raw.map((item) => normalizeStatus(item, focalId, "timeline")).filter(Boolean);
+  return {
+    id: focalId,
+    canonicalUrl: parsed.canonicalUrl,
+    mode: "timeline",
+    query: { kind: "profile", screenName: parsed.screenName, canonicalUrl: parsed.canonicalUrl },
+    focalIndex: 0,
+    tweets
+  };
+}
+
+function providerRoot(value) {
+  return String(value || "https://api.fxtwitter.com/2")
+    .replace(/\/+$/, "")
+    .replace(/\/status$/i, "");
+}
+
+function boundedInteger(value, fallback, minimum, maximum) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(maximum, Math.max(minimum, Math.trunc(number)));
+}
+
 export class FxTwitterProvider {
   constructor({
     fetchImpl = globalThis.fetch,
-    baseUrl = process.env.TWEET_PROVIDER_URL || "https://api.fxtwitter.com/2/status",
-    timeoutMs = Number(process.env.TWEET_PROVIDER_TIMEOUT_MS || 15000)
+    baseUrl = process.env.TWEET_PROVIDER_URL || "https://api.fxtwitter.com/2",
+    timeoutMs = Number(process.env.TWEET_PROVIDER_TIMEOUT_MS || 15000),
+    timelineCount = Number(process.env.TWEET_TIMELINE_COUNT || 12),
+    replyCount = Number(process.env.TWEET_REPLY_COUNT || 20)
   } = {}) {
     this.fetchImpl = fetchImpl;
-    this.baseUrl = baseUrl.replace(/\/$/, "");
-    this.timeoutMs = timeoutMs;
+    this.baseUrl = providerRoot(baseUrl);
+    this.timeoutMs = boundedInteger(timeoutMs, 15000, 1000, 60000);
+    this.timelineCount = boundedInteger(timelineCount, 12, 1, 20);
+    this.replyCount = boundedInteger(replyCount, 20, 0, 30);
   }
 
-  async fetchTweet(url) {
-    const parsed = parseTweetUrl(url);
+  async #request(pathname) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     let response;
     try {
-      response = await this.fetchImpl(`${this.baseUrl}/${parsed.id}`, {
+      response = await this.fetchImpl(`${this.baseUrl}${pathname}`, {
         headers: {
           accept: "application/json",
           "user-agent": "TweetToaster/2.0 (+https://github.com/cn-matsuri/TweetToaster)"
@@ -147,23 +260,47 @@ export class FxTwitterProvider {
         signal: controller.signal
       });
     } catch (error) {
-      const message = error?.name === "AbortError" ? "推文数据源响应超时" : "无法连接推文数据源";
+      const message = error?.name === "AbortError" ? "公开推文数据源响应超时" : "无法连接公开推文数据源";
       throw new TweetProviderError(message, { status: 503, code: "PROVIDER_UNAVAILABLE" });
     } finally {
       clearTimeout(timer);
     }
+
+    if (response.status === 204) return { code: 204, results: [] };
     let payload;
     try {
       payload = await response.json();
     } catch {
-      throw new TweetProviderError("推文数据源返回了无效响应", { status: 502 });
+      throw new TweetProviderError("公开推文数据源返回了无效响应", { status: 502 });
     }
     if (!response.ok && payload?.code !== 200) {
-      throw new TweetProviderError(payload?.message || `推文数据源错误 (${response.status})`, {
+      throw new TweetProviderError(payload?.message || `公开推文数据源错误 (${response.status})`, {
         status: response.status === 404 ? 404 : 502
       });
     }
-    return normalizeProviderResponse(payload, parsed);
+    return payload;
+  }
+
+  async fetchTweet(input) {
+    const parsed = parseTweetInput(input);
+    if (parsed.kind === "profile") {
+      const query = new URLSearchParams({ count: String(this.timelineCount) });
+      const payload = await this.#request(`/profile/${encodeURIComponent(parsed.screenName)}/statuses?${query}`);
+      return normalizeTimelineResponse(payload, parsed, { maxStatuses: this.timelineCount });
+    }
+
+    try {
+      const payload = await this.#request(`/conversation/${parsed.id}?ranking_mode=likes`);
+      return normalizeConversationResponse(payload, parsed, { maxReplies: this.replyCount });
+    } catch (conversationError) {
+      try {
+        const payload = await this.#request(`/status/${parsed.id}`);
+        return normalizeProviderResponse(payload, parsed);
+      } catch (statusError) {
+        statusError.cause = conversationError;
+        throw statusError;
+      }
+    }
   }
 }
 
