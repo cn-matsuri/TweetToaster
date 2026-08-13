@@ -29,6 +29,29 @@ test("browser editor and bot renderer share the working export surface", { timeo
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
     await page.goto(origin, { waitUntil: "networkidle" });
+    await page.locator("#logo-select option").first().waitFor({ state: "attached" });
+    const initialOptions = await page.locator("#logo-select option").allTextContents();
+    assert.ok(initialOptions.length < 10, "the favorites dropdown must not expose the full catalog");
+    assert.ok(initialOptions.some((label) => label.includes("夏色祭工坊")));
+
+    await page.getByRole("button", { name: "管理常用与上传" }).click();
+    await page.locator("#asset-library").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#builtin-assets-grid .asset-card").count(), 49);
+    await page.getByPlaceholder("搜索角色、字幕组或模板名称").fill("兔田");
+    const pekoraCard = page.locator("#builtin-assets-grid .asset-card").filter({ hasText: "兔田佩克拉" });
+    await pekoraCard.getByRole("button", { name: "加入常用" }).click();
+    await page.getByPlaceholder("搜索角色、字幕组或模板名称").fill("");
+
+    const originalLogo = await readFile(path.resolve("Matsuri_translation/frontend/img/brand-logo.png"));
+    const largeLocalLogo = Buffer.concat([originalLogo, Buffer.alloc(2 * 1024 * 1024, 0)]);
+    await page.locator("#custom-logo").setInputFiles({
+      name: "不会被压小的Logo.png",
+      mimeType: "image/png",
+      buffer: largeLocalLogo
+    });
+    await page.locator("#close-library").click();
+    await page.locator("#logo-select").selectOption({ label: "不会被压小的Logo" });
+
     await page.getByLabel("X 主页、@用户名或推文链接").fill("minatoaqua");
     await page.getByRole("button", { name: "查询" }).click();
     const translation = page.getByPlaceholder("输入中文翻译（留空则只显示原文）").first();
@@ -47,6 +70,45 @@ test("browser editor and bot renderer share the working export surface", { timeo
       naturalHeight: image.naturalHeight
     }));
     assert.ok(Math.abs((logoDimensions.width / logoDimensions.height) - (logoDimensions.naturalWidth / logoDimensions.naturalHeight)) < 0.02);
+    assert.equal(logoDimensions.width, Math.min(logoDimensions.naturalWidth, 568));
+
+    await page.evaluate(() => {
+      window.__customLogoPng = null;
+      window.saveAs = async (blob) => {
+        const bytes = await blob.arrayBuffer();
+        window.__customLogoPng = { size: blob.size, width: new DataView(bytes).getUint32(16) };
+      };
+    });
+    await page.getByRole("button", { name: "下载 PNG" }).click();
+    await page.waitForFunction(() => window.__customLogoPng !== null || document.querySelector("#status")?.classList.contains("error"), null, { timeout: 45000 });
+    const customLogoExport = await page.evaluate(() => ({ png: window.__customLogoPng, status: document.querySelector("#status")?.textContent }));
+    assert.ok(customLogoExport.png, customLogoExport.status);
+    assert.equal(customLogoExport.png.width, 1280);
+    assert.ok(customLogoExport.png.size > 10000);
+
+    await page.locator(".template-details summary").click();
+    await page.locator("#template-input").fill("<div style=\"font-size:29px\">持久模板 {T}</div>");
+    await page.locator("#template-name").fill("我的长期模板");
+    await page.getByRole("button", { name: "保存到我的模板" }).click();
+    await page.reload({ waitUntil: "networkidle" });
+    await page.locator("#logo-select option").first().waitFor({ state: "attached" });
+    const persistedOptions = await page.locator("#logo-select option").allTextContents();
+    assert.ok(persistedOptions.some((label) => label.includes("不会被压小的Logo")));
+    assert.ok(persistedOptions.some((label) => label.includes("我的长期模板")));
+    assert.ok(persistedOptions.some((label) => label.includes("兔田佩克拉")));
+    assert.equal(await page.locator("#template-input").inputValue(), "<div style=\"font-size:29px\">持久模板 {T}</div>");
+
+    await page.locator("#logo-select").selectOption("builtin:matsuri");
+    await page.getByLabel("X 主页、@用户名或推文链接").fill("minatoaqua");
+    await page.getByRole("button", { name: "查询" }).click();
+    const restoredTranslation = page.getByPlaceholder("输入中文翻译（留空则只显示原文）").first();
+    await restoredTranslation.waitFor();
+    await restoredTranslation.fill("虽然麻烦不断，直播还是开始了！");
+    const builtinLogoDimensions = await page.locator("#capture .translation-block img").first().evaluate((image) => ({
+      width: image.getBoundingClientRect().width,
+      naturalWidth: image.naturalWidth
+    }));
+    assert.equal(builtinLogoDimensions.width, builtinLogoDimensions.naturalWidth);
 
     await page.evaluate(() => {
       window.__savedPng = null;

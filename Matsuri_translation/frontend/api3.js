@@ -11,7 +11,11 @@
     showCounts: true,
     template: "",
     botMode: false,
-    focalIndex: 0
+    focalIndex: 0,
+    activeAsset: "builtin:matsuri",
+    catalog: [],
+    userAssets: [],
+    draftTemplate: ""
   };
 
   const LOGOS = {
@@ -19,6 +23,107 @@
     keke: "img/gongfang_keke.png",
     magic: "img/magic_small.png"
   };
+
+  const DEFAULT_FAVORITES = ["builtin:matsuri", "builtin:suisei", "builtin:shion", "builtin:fubuki"];
+  const PREFERENCES_KEY = "tweetToaster.preferences.v1";
+  const DATABASE_NAME = "tweetToasterAssets";
+  const DRAFT_ID = "advanced-template-draft";
+  let draftTimer;
+  let databasePromise;
+  let persistentStorageAvailable = true;
+
+  function readPreferences() {
+    try {
+      const value = JSON.parse(localStorage.getItem(PREFERENCES_KEY) || "{}");
+      return {
+        favorites: Array.isArray(value.favorites) ? value.favorites : [...DEFAULT_FAVORITES],
+        activeAsset: typeof value.activeAsset === "string" ? value.activeAsset : "builtin:matsuri",
+        fontSize: Number(value.fontSize) || 26,
+        showCounts: value.showCounts !== false
+      };
+    } catch {
+      return { favorites: [...DEFAULT_FAVORITES], activeAsset: "builtin:matsuri", fontSize: 26, showCounts: true };
+    }
+  }
+
+  const preferences = readPreferences();
+  state.fontSize = preferences.fontSize;
+  state.showCounts = preferences.showCounts;
+  state.activeAsset = preferences.activeAsset;
+
+  function writePreferences() {
+    try {
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+    } catch {
+      // Private browsing can disable localStorage. The current session still works.
+    }
+  }
+
+  function openDatabase() {
+    if (!databasePromise) {
+      databasePromise = new Promise((resolve, reject) => {
+        const request = indexedDB.open(DATABASE_NAME, 1);
+        request.onupgradeneeded = () => request.result.createObjectStore("assets", { keyPath: "id" });
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+    return databasePromise;
+  }
+
+  async function assetTransaction(mode, operation) {
+    const database = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction("assets", mode);
+      const request = operation(transaction.objectStore("assets"));
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+  }
+
+  const getStoredAssets = () => assetTransaction("readonly", (store) => store.getAll());
+  const putStoredAsset = (asset) => assetTransaction("readwrite", (store) => store.put(asset));
+  const deleteStoredAsset = (id) => assetTransaction("readwrite", (store) => store.delete(id));
+
+  async function persistAsset(asset) {
+    if (!persistentStorageAvailable) return false;
+    try {
+      await putStoredAsset(asset);
+      return true;
+    } catch {
+      persistentStorageAvailable = false;
+      setStatus("浏览器无法持久保存素材；当前素材仍可在本次打开期间使用。", "error");
+      return false;
+    }
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function assetChoice(id) {
+    return `user:${id}`;
+  }
+
+  function catalogChoice(id) {
+    return `builtin:${id}`;
+  }
+
+  function catalogItemFromChoice(choice) {
+    if (!choice.startsWith("builtin:")) return null;
+    return state.catalog.find((item) => item.id === choice.slice("builtin:".length)) || null;
+  }
+
+  function userAssetFromChoice(choice) {
+    if (!choice.startsWith("user:")) return null;
+    return state.userAssets.find((item) => item.id === choice.slice("user:".length)) || null;
+  }
 
   const $ = (selector) => document.querySelector(selector);
 
@@ -35,6 +140,310 @@
     element.hidden = false;
     element.className = `status${type === "error" ? " error" : ""}`;
     element.textContent = message;
+  }
+
+  function choiceName(choice) {
+    if (choice === "none") return "不显示落款";
+    if (choice === "draft") return "高级模板草稿";
+    const catalogItem = catalogItemFromChoice(choice);
+    if (catalogItem) return catalogItem.name;
+    const userAsset = userAssetFromChoice(choice);
+    if (userAsset) return userAsset.name;
+    return "未选择落款";
+  }
+
+  function addSelectOption(select, value, label) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    select.append(option);
+  }
+
+  function activeChoiceExists(choice) {
+    return choice === "none" || choice === "draft" || Boolean(catalogItemFromChoice(choice) || userAssetFromChoice(choice));
+  }
+
+  function refreshAssetSelect() {
+    const select = $("#logo-select");
+    if (!select) return;
+    select.replaceChildren();
+    const pinnedChoices = [];
+    for (const choice of preferences.favorites) {
+      const item = catalogItemFromChoice(choice);
+      if (item && !item.hidden) pinnedChoices.push(choice);
+    }
+    for (const asset of state.userAssets.filter((item) => item.pinned)) pinnedChoices.push(assetChoice(asset.id));
+    if (activeChoiceExists(state.activeAsset) && !pinnedChoices.includes(state.activeAsset) && state.activeAsset !== "none") {
+      addSelectOption(select, state.activeAsset, `当前 · ${choiceName(state.activeAsset)}`);
+    }
+    if (pinnedChoices.length) {
+      const group = document.createElement("optgroup");
+      group.label = "我的常用";
+      for (const choice of pinnedChoices) addSelectOption(group, choice, choiceName(choice));
+      select.append(group);
+    }
+    addSelectOption(select, "none", "不显示落款");
+    addSelectOption(select, "manage", "管理常用与上传…");
+    select.value = activeChoiceExists(state.activeAsset) ? state.activeAsset : "none";
+    $("#active-asset-note").textContent = `${choiceName(state.activeAsset)} · 本地保存`;
+  }
+
+  async function fetchTemplateFile(item) {
+    const response = await fetch(`/templates/${encodeURIComponent(item.file)}`);
+    if (!response.ok) throw new Error(`模板读取失败 (${response.status})`);
+    return response.text();
+  }
+
+  async function applyAssetChoice(choice, { persist = true } = {}) {
+    const catalogItem = catalogItemFromChoice(choice);
+    const userAsset = userAssetFromChoice(choice);
+    if (catalogItem) {
+      state.template = await fetchTemplateFile(catalogItem);
+      state.logo = "none";
+      state.customLogo = "";
+    } else if (userAsset?.kind === "logo") {
+      state.template = "";
+      state.logo = "custom";
+      state.customLogo = await blobToDataUrl(userAsset.blob);
+    } else if (userAsset?.kind === "template") {
+      state.template = userAsset.html;
+      state.logo = "none";
+      state.customLogo = "";
+      $("#template-input").value = userAsset.html;
+      $("#template-name").value = userAsset.name;
+    } else if (choice === "draft") {
+      state.template = $("#template-input").value;
+      state.logo = "none";
+      state.customLogo = "";
+    } else {
+      choice = "none";
+      state.template = "";
+      state.logo = "none";
+      state.customLogo = "";
+    }
+    state.activeAsset = choice;
+    if (persist) {
+      preferences.activeAsset = choice;
+      writePreferences();
+    }
+    refreshAssetSelect();
+    renderPreview();
+  }
+
+  function replaceUserAsset(asset) {
+    const index = state.userAssets.findIndex((item) => item.id === asset.id);
+    if (index >= 0) state.userAssets[index] = asset;
+    else state.userAssets.push(asset);
+  }
+
+  async function togglePinned(choice) {
+    const catalogItem = catalogItemFromChoice(choice);
+    const userAsset = userAssetFromChoice(choice);
+    if (catalogItem) {
+      const favorites = new Set(preferences.favorites);
+      if (favorites.has(choice)) favorites.delete(choice);
+      else favorites.add(choice);
+      preferences.favorites = [...favorites];
+      writePreferences();
+    } else if (userAsset) {
+      const updated = { ...userAsset, pinned: !userAsset.pinned };
+      const { previewUrl, ...stored } = updated;
+      await persistAsset(stored);
+      replaceUserAsset(updated);
+    }
+    refreshAssetSelect();
+    renderAssetLibrary();
+  }
+
+  function createAssetCard({ choice, name, subtitle, image, custom = false }) {
+    const card = document.createElement("article");
+    card.className = "asset-card";
+    const preview = document.createElement("div");
+    preview.className = `asset-preview${image ? "" : " template-icon"}`;
+    if (image) {
+      const logo = document.createElement("img");
+      logo.src = image;
+      logo.alt = "";
+      preview.append(logo);
+    } else {
+      preview.textContent = "{T}\nHTML";
+    }
+    const body = document.createElement("div");
+    body.className = "asset-card-body";
+    const title = document.createElement("strong");
+    title.textContent = name;
+    const detail = document.createElement("small");
+    detail.textContent = subtitle;
+    const actions = document.createElement("div");
+    actions.className = "asset-card-actions";
+    const use = document.createElement("button");
+    use.className = "mini-button";
+    use.type = "button";
+    use.textContent = state.activeAsset === choice ? "使用中" : "使用";
+    use.disabled = state.activeAsset === choice;
+    use.addEventListener("click", async () => {
+      await applyAssetChoice(choice);
+      $("#asset-library").close();
+    });
+    const pin = document.createElement("button");
+    pin.className = "mini-button pin-button";
+    pin.type = "button";
+    const userAsset = userAssetFromChoice(choice);
+    const pinned = userAsset ? userAsset.pinned : preferences.favorites.includes(choice);
+    pin.setAttribute("aria-pressed", String(Boolean(pinned)));
+    pin.textContent = pinned ? "★ 常用" : "☆ 加入常用";
+    pin.addEventListener("click", () => togglePinned(choice).catch((error) => setStatus(error.message, "error")));
+    actions.append(use, pin);
+    if (custom) {
+      const remove = document.createElement("button");
+      remove.className = "mini-button";
+      remove.type = "button";
+      remove.textContent = "删除";
+      remove.addEventListener("click", () => removeUserAsset(choice));
+      actions.append(remove);
+    }
+    body.append(title, detail, actions);
+    card.append(preview, body);
+    return card;
+  }
+
+  function customAssetImage(asset) {
+    if (asset.kind !== "logo") return "";
+    if (!asset.previewUrl) asset.previewUrl = URL.createObjectURL(asset.blob);
+    return asset.previewUrl;
+  }
+
+  function renderAssetLibrary() {
+    const query = $("#asset-search").value.trim().toLocaleLowerCase();
+    const builtinGrid = $("#builtin-assets-grid");
+    builtinGrid.replaceChildren();
+    const visible = state.catalog.filter((item) => !item.hidden &&
+      (!query || [item.id, item.name, ...(item.tags || [])].join(" ").toLocaleLowerCase().includes(query)));
+    for (const item of visible) {
+      builtinGrid.append(createAssetCard({
+        choice: catalogChoice(item.id),
+        name: item.name,
+        subtitle: (item.tags || []).join(" · "),
+        image: `/templates/${item.logo}`
+      }));
+    }
+    if (!visible.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty-assets";
+      empty.textContent = "没有匹配的内置模板。可以上传自己的 Logo。";
+      builtinGrid.append(empty);
+    }
+    $("#builtin-assets-count").textContent = `${visible.length} / ${state.catalog.filter((item) => !item.hidden).length}`;
+
+    const mine = state.userAssets.filter((item) => !query || item.name.toLocaleLowerCase().includes(query));
+    const mineSection = $("#my-assets-section");
+    mineSection.hidden = state.userAssets.length === 0;
+    const mineGrid = $("#my-assets-grid");
+    mineGrid.replaceChildren();
+    for (const asset of mine) {
+      mineGrid.append(createAssetCard({
+        choice: assetChoice(asset.id),
+        name: asset.name,
+        subtitle: asset.kind === "logo" ? `本地 Logo · ${Math.ceil(asset.blob.size / 1024)} KB` : "本地 HTML 模板",
+        image: customAssetImage(asset),
+        custom: true
+      }));
+    }
+    $("#my-assets-count").textContent = `${mine.length} 项`;
+  }
+
+  async function removeUserAsset(choice) {
+    const asset = userAssetFromChoice(choice);
+    if (!asset || !window.confirm(`删除“${asset.name}”？只会清除这个浏览器里的副本。`)) return;
+    if (persistentStorageAvailable) {
+      try {
+        await deleteStoredAsset(asset.id);
+      } catch {
+        persistentStorageAvailable = false;
+        setStatus("浏览器没有完成本地删除；当前页面中已移除该素材。", "error");
+      }
+    }
+    if (asset.previewUrl) URL.revokeObjectURL(asset.previewUrl);
+    state.userAssets = state.userAssets.filter((item) => item.id !== asset.id);
+    if (state.activeAsset === choice) await applyAssetChoice(preferences.favorites[0] || "none");
+    refreshAssetSelect();
+    renderAssetLibrary();
+  }
+
+  async function saveAdvancedTemplate() {
+    const html = $("#template-input").value;
+    if (!html.trim()) {
+      setStatus("请先输入模板 HTML。", "error");
+      return;
+    }
+    if (!html.includes("{T}")) {
+      setStatus("自定义模板必须包含 {T}，否则翻译文字无处显示。", "error");
+      return;
+    }
+    const current = userAssetFromChoice(state.activeAsset);
+    const name = $("#template-name").value.trim() || current?.name || `我的模板 ${state.userAssets.filter((item) => item.kind === "template").length + 1}`;
+    const asset = {
+      id: current?.kind === "template" ? current.id : `template-${crypto.randomUUID()}`,
+      kind: "template",
+      name,
+      html,
+      pinned: true,
+      updatedAt: Date.now()
+    };
+    const persisted = await persistAsset(asset);
+    replaceUserAsset(asset);
+    await applyAssetChoice(assetChoice(asset.id));
+    if (persisted) setStatus(`已把“${name}”保存在这个浏览器。`);
+  }
+
+  async function storeUploadedLogo(file) {
+    if (!/^image\/(?:png|jpeg|webp)$/i.test(file.type)) {
+      throw new Error("自定义 Logo 仅支持 PNG、JPEG 或 WebP");
+    }
+    const name = file.name.replace(/\.[^.]+$/, "") || "我的 Logo";
+    const asset = {
+      id: `logo-${crypto.randomUUID()}`,
+      kind: "logo",
+      name,
+      blob: file,
+      pinned: true,
+      updatedAt: Date.now()
+    };
+    const persisted = await persistAsset(asset);
+    replaceUserAsset(asset);
+    await applyAssetChoice(assetChoice(asset.id));
+    renderAssetLibrary();
+    if (persisted) setStatus(`“${name}”已按原图保存在这个浏览器，不会上传到服务器素材库。`);
+  }
+
+  function persistDraftTemplate(html) {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => {
+      persistAsset({ id: DRAFT_ID, kind: "draft", html, updatedAt: Date.now() });
+    }, 250);
+  }
+
+  async function initializeAssetLibrary() {
+    const response = await fetch("/templates/catalog.json");
+    if (!response.ok) throw new Error("无法读取内置模板目录");
+    const catalog = await response.json();
+    state.catalog = catalog.templates || [];
+    let stored = [];
+    try {
+      stored = await getStoredAssets();
+    } catch {
+      persistentStorageAvailable = false;
+      setStatus("当前浏览器不允许持久化素材，自定义项只在本次打开期间可用。", "error");
+    }
+    const draft = stored.find((item) => item.id === DRAFT_ID);
+    state.userAssets = stored.filter((item) => item.kind === "logo" || item.kind === "template");
+    state.draftTemplate = draft?.html || "";
+    $("#template-input").value = state.draftTemplate;
+    $("#font-size-select").value = String(state.fontSize);
+    $("#show-counts").checked = state.showCounts;
+    const firstAvailableFavorite = preferences.favorites.find((choice) => activeChoiceExists(choice));
+    const initial = activeChoiceExists(preferences.activeAsset) ? preferences.activeAsset : firstAvailableFavorite || "none";
+    await applyAssetChoice(initial, { persist: false });
   }
 
   function appendLinkedText(container, text) {
@@ -195,7 +604,7 @@
           name === "width" || name === "height" || (node.tagName === "IMG" && name === "src");
         if (!allowed) node.removeAttribute(attribute.name);
         if (name === "style" && /(url\s*\(|expression\s*\(|@import|javascript:)/i.test(value)) node.removeAttribute(attribute.name);
-        if (name === "src" && !/^(?:data:image\/|img\/|\/?template\/|\/api\/media)/i.test(value)) node.removeAttribute(attribute.name);
+        if (name === "src" && !/^(?:data:image\/|img\/|\/?templates?\/|\/api\/media)/i.test(value)) node.removeAttribute(attribute.name);
       });
     });
     return parsed.content;
@@ -448,7 +857,9 @@
     window.__tweetToasterReady = false;
     document.body.classList.add("render-mode");
     state.data = payload.data;
-    state.botMode = true;
+    // Browser downloads send an explicit selection and must match the editor preview.
+    // Only the legacy Bot translation string keeps the old per-reply variant behavior.
+    state.botMode = !Array.isArray(payload.selection);
     state.focalIndex = payload.data.focalIndex;
     state.logo = payload.logo || "official";
     state.customLogo = payload.customLogo || "";
@@ -477,7 +888,6 @@
     state.included = [];
     $("#capture").innerHTML = `<div class="empty-preview"><div class="skeleton profile-skeleton"></div><div class="skeleton line line-wide"></div><div class="skeleton line line-medium"></div><div class="skeleton media-skeleton"></div><div class="skeleton line line-short"></div><p>一张可以直接发布的烤推图，会出现在这里。</p></div>`;
     $("#translation-panel").hidden = true;
-    $("#style-panel").hidden = true;
     $("#action-bar").hidden = true;
     $("#tweet-url").focus();
     setStatus("");
@@ -490,7 +900,14 @@
       const template = await response.text();
       if (new Blob([template]).size > 64 * 1024) throw new Error("模板文件过大");
       state.template = template;
+      state.draftTemplate = template;
+      state.activeAsset = "draft";
+      state.logo = "none";
       $("#template-input").value = template;
+      preferences.activeAsset = "draft";
+      writePreferences();
+      persistDraftTemplate(template);
+      refreshAssetSelect();
       return true;
     } catch (error) {
       setStatus(error.message || "无法读取模板", "error");
@@ -503,25 +920,68 @@
       event.preventDefault();
       queryTweet($("#tweet-url").value);
     });
-    $("#logo-select").addEventListener("change", (event) => {
-      state.logo = event.target.value;
-      if (state.logo === "custom") $("#custom-logo").click();
-      renderPreview();
-    });
-    $("#custom-logo").addEventListener("change", (event) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      if (file.size > 2 * 1024 * 1024) {
-        setStatus("自定义 Logo 请控制在 2 MB 以内。", "error");
+    $("#logo-select").addEventListener("change", async (event) => {
+      if (event.target.value === "manage") {
+        refreshAssetSelect();
+        renderAssetLibrary();
+        $("#asset-library").showModal();
         return;
       }
-      const reader = new FileReader();
-      reader.onload = () => { state.customLogo = String(reader.result); renderPreview(); };
-      reader.readAsDataURL(file);
+      try {
+        await applyAssetChoice(event.target.value);
+      } catch (error) {
+        setStatus(error.message || "无法读取这个模板", "error");
+      }
     });
-    $("#font-size-select").addEventListener("change", (event) => { state.fontSize = Number(event.target.value); renderPreview(); });
-    $("#show-counts").addEventListener("change", (event) => { state.showCounts = event.target.checked; renderPreview(); });
-    $("#template-input").addEventListener("input", (event) => { state.template = event.target.value; renderPreview(); });
+    $("#custom-logo").addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        await storeUploadedLogo(file);
+      } catch (error) {
+        setStatus(error.message || "无法保存自定义 Logo", "error");
+      } finally {
+        event.target.value = "";
+      }
+    });
+    $("#font-size-select").addEventListener("change", (event) => {
+      state.fontSize = Number(event.target.value);
+      preferences.fontSize = state.fontSize;
+      writePreferences();
+      renderPreview();
+    });
+    $("#show-counts").addEventListener("change", (event) => {
+      state.showCounts = event.target.checked;
+      preferences.showCounts = state.showCounts;
+      writePreferences();
+      renderPreview();
+    });
+    $("#template-input").addEventListener("input", (event) => {
+      state.template = event.target.value;
+      state.draftTemplate = event.target.value;
+      state.logo = "none";
+      if (state.activeAsset !== "draft") {
+        state.activeAsset = "draft";
+        preferences.activeAsset = "draft";
+        writePreferences();
+        refreshAssetSelect();
+      }
+      persistDraftTemplate(event.target.value);
+      renderPreview();
+    });
+    $("#save-template").addEventListener("click", () => saveAdvancedTemplate().catch((error) => setStatus(error.message, "error")));
+    $("#clear-template").addEventListener("click", () => {
+      applyAssetChoice(preferences.favorites.find((choice) => catalogItemFromChoice(choice)) || "none")
+        .catch((error) => setStatus(error.message, "error"));
+    });
+    $("#manage-assets").addEventListener("click", () => {
+      $("#asset-search").value = "";
+      renderAssetLibrary();
+      $("#asset-library").showModal();
+    });
+    $("#close-library").addEventListener("click", () => $("#asset-library").close());
+    $("#asset-search").addEventListener("input", renderAssetLibrary);
+    $("#upload-logo").addEventListener("click", () => $("#custom-logo").click());
     $("#select-all").addEventListener("click", () => setSelection("all"));
     $("#recommended-selection").addEventListener("click", () => setSelection("recommended"));
     $("#select-none").addEventListener("click", () => setSelection("none"));
@@ -535,9 +995,20 @@
   document.addEventListener("DOMContentLoaded", async () => {
     bind();
     const params = new URLSearchParams(location.search);
-    if (params.get("render") === "1") document.body.classList.add("render-mode");
-    if (params.get("template") && params.get("render") !== "1") await loadTemplateParam(params.get("template"));
-    if (params.get("tweet") && params.get("render") !== "1") {
+    if (params.get("render") === "1") {
+      document.body.classList.add("render-mode");
+      return;
+    }
+    try {
+      await initializeAssetLibrary();
+    } catch (error) {
+      state.logo = "official";
+      state.activeAsset = "none";
+      refreshAssetSelect();
+      setStatus(error.message || "模板库暂时不可用，仍可继续查询和出图。", "error");
+    }
+    if (params.get("template")) await loadTemplateParam(params.get("template"));
+    if (params.get("tweet")) {
       $("#tweet-url").value = params.get("tweet");
       queryTweet(params.get("tweet"));
     }

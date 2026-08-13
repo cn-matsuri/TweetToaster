@@ -1,0 +1,4 @@
+<div style="margin:10px 17px">
+<img src="/templates/img/tamashoko.png" style="display:block;max-width:100%;height:auto">
+<div style="font-size:27px;">{T}</div>
+</div>

@@ -73,7 +73,7 @@
           <div id="translation-list" class="translation-list"></div>
         </section>
 
-        <section class="panel" id="style-panel" hidden>
+        <section class="panel" id="style-panel">
           <div class="panel-heading">
             <div>
               <h2>落款与模板</h2>
@@ -82,13 +82,9 @@
           </div>
           <div class="field-grid">
             <label>
-              Logo
+              常用模板 / Logo
               <select id="logo-select">
-                <option value="official">夏色祭工坊</option>
-                <option value="keke">工坊 · Keke</option>
-                <option value="magic">Magic</option>
-                <option value="none">不显示</option>
-                <option value="custom">上传自定义 Logo…</option>
+                <option>正在读取模板库…</option>
               </select>
             </label>
             <label>
@@ -100,6 +96,10 @@
               </select>
             </label>
           </div>
+          <div class="asset-actions">
+            <button class="mini-button" id="manage-assets" type="button">管理常用与上传…</button>
+            <span id="active-asset-note">模板与 Logo 只保存在这个浏览器</span>
+          </div>
           <input id="custom-logo" type="file" accept="image/png,image/jpeg,image/webp" hidden>
           <label class="check-row">
             <input id="show-counts" type="checkbox" checked>
@@ -110,6 +110,12 @@
             <p>用 <code>{T}</code> 代表翻译文字。危险标签、脚本和事件属性会被自动移除。</p>
             <textarea id="template-input" rows="7" spellcheck="false"
               placeholder="<div class=&quot;my-template&quot;>{T}</div>"></textarea>
+            <div class="template-save-row">
+              <input id="template-name" type="text" maxlength="60" placeholder="给这个模板起个名字">
+              <button class="mini-button" id="save-template" type="button">保存到我的模板</button>
+              <button class="mini-button" id="clear-template" type="button">停用自定义 HTML</button>
+            </div>
+            <p>草稿和已保存模板会留在浏览器本地；不会保存到烤推机服务器。</p>
           </details>
         </section>
 
@@ -124,5 +130,36 @@
       </div>
     </aside>
   </main>
+
+  <dialog id="asset-library" aria-labelledby="asset-library-title">
+    <div class="library-shell">
+      <header class="library-header">
+        <div>
+          <h2 id="asset-library-title">落款素材库</h2>
+          <p>模板库很大，下拉菜单只显示你钉住的常用项。</p>
+        </div>
+        <button class="ghost-button" id="close-library" type="button" aria-label="关闭素材库">完成</button>
+      </header>
+      <div class="library-toolbar">
+        <input id="asset-search" type="search" placeholder="搜索角色、字幕组或模板名称">
+        <button class="secondary-button" id="upload-logo" type="button">上传自己的 Logo</button>
+      </div>
+      <p class="library-privacy">自定义 Logo 原图保存在浏览器本地，不限 50 KB，也不会被统一缩小。下载时只会临时交给出图进程，不会存入素材库服务器。</p>
+      <section id="my-assets-section" hidden>
+        <div class="library-section-title">
+          <h3>我的素材</h3>
+          <span id="my-assets-count"></span>
+        </div>
+        <div class="asset-grid" id="my-assets-grid"></div>
+      </section>
+      <section>
+        <div class="library-section-title">
+          <h3>内置模板</h3>
+          <span id="builtin-assets-count"></span>
+        </div>
+        <div class="asset-grid" id="builtin-assets-grid"></div>
+      </section>
+    </div>
+  </dialog>
 </body>
 </html>

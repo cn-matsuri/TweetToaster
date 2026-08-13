@@ -10,10 +10,13 @@ const MIME = new Map([
   [".html", "text/html; charset=utf-8"],
   [".js", "text/javascript; charset=utf-8"],
   [".css", "text/css; charset=utf-8"],
+  [".json", "application/json; charset=utf-8"],
+  [".txt", "text/plain; charset=utf-8"],
   [".png", "image/png"],
   [".jpg", "image/jpeg"],
   [".jpeg", "image/jpeg"],
   [".gif", "image/gif"],
+  [".webp", "image/webp"],
   [".svg", "image/svg+xml"],
   [".ico", "image/x-icon"]
 ]);
@@ -94,17 +97,30 @@ async function serveStatic(requestPath, response, publicDir) {
 
 async function readLocalTemplate(value, publicDir, maxBytes = 64 * 1024) {
   const relative = value.replace(/^\/+/, "");
-  const filePath = path.resolve(publicDir, relative);
   const root = `${path.resolve(publicDir)}${path.sep}`;
-  if (!filePath.startsWith(root)) {
+  const candidates = [relative];
+  if (/^template\//i.test(relative)) candidates.push(relative.replace(/^template\//i, "templates/"));
+  const paths = candidates.map((candidate) => path.resolve(publicDir, candidate));
+  if (paths.some((filePath) => !filePath.startsWith(root))) {
     const error = new Error("模板路径无效");
     error.status = 400;
     throw error;
   }
+  let filePath;
   let info;
-  try {
-    info = await stat(filePath);
-  } catch {
+  for (const candidate of paths) {
+    try {
+      const candidateInfo = await stat(candidate);
+      if (candidateInfo.isFile()) {
+        filePath = candidate;
+        info = candidateInfo;
+        break;
+      }
+    } catch {
+      // Try the bundled plural /templates path after the legacy mount path.
+    }
+  }
+  if (!filePath) {
     const error = new Error("模板不存在");
     error.status = 400;
     throw error;
@@ -161,8 +177,8 @@ function validateRenderEvent(event) {
   if (normalized.logo === "custom" && !/^data:image\/(?:png|jpeg|webp);base64,/i.test(normalized.customLogo)) {
     throw new TweetProviderError("自定义 Logo 仅支持 PNG、JPEG 或 WebP", { status: 400, code: "INVALID_LOGO" });
   }
-  if (normalized.customLogo.length > 3 * 1024 * 1024) {
-    throw new TweetProviderError("自定义 Logo 请控制在 2 MB 以内", { status: 413, code: "LOGO_TOO_LARGE" });
+  if (normalized.customLogo.length > 32 * 1024 * 1024) {
+    throw new TweetProviderError("Logo 的临时出图数据过大", { status: 413, code: "LOGO_TOO_LARGE" });
   }
   normalized.fontSize = Math.min(36, Math.max(18, normalized.fontSize));
   return normalized;
@@ -198,7 +214,7 @@ export function createTweetToasterServer({
       }
 
       if (request.method === "POST" && requestUrl.pathname === "/api/auto") {
-        const event = validateAutoEvent(await readJson(request));
+        const event = validateAutoEvent(await readJson(request, 36 * 1024 * 1024));
         const taskId = jobs.add(async () => {
           const data = await provider.fetchTweet(event.tweet);
           const template = await resolveTemplate(event.template, { fetchImpl, publicDir });
@@ -208,7 +224,7 @@ export function createTweetToasterServer({
       }
 
       if (request.method === "POST" && requestUrl.pathname === "/api/render") {
-        const event = validateRenderEvent(await readJson(request, 4 * 1024 * 1024));
+        const event = validateRenderEvent(await readJson(request, 36 * 1024 * 1024));
         const taskId = jobs.add(async () => {
           const data = await provider.fetchTweet(event.tweet);
           const template = await resolveTemplate(event.template, { fetchImpl, publicDir });
@@ -248,6 +264,11 @@ export function createTweetToasterServer({
 
       if ((request.method === "GET" || request.method === "HEAD") && requestUrl.pathname.startsWith("/cache/") &&
           await serveStatic(requestUrl.pathname.slice("/cache".length), response, cacheDir)) {
+        return;
+      }
+
+      if ((request.method === "GET" || request.method === "HEAD") && requestUrl.pathname.startsWith("/template/") &&
+          await serveStatic(requestUrl.pathname.slice("/template".length), response, path.join(publicDir, "templates"))) {
         return;
       }
 

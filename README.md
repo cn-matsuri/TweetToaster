@@ -22,7 +22,10 @@
 - 接受带或不带 `https://` 的 `x.com/.../status/...`、`twitter.com/.../status/...` 单推链接
 - 主页模式列出多条近期公开推文，默认预览前三条，可任意勾选
 - 单推模式同时列出上下文、目标推文和其他用户回复，可逐条选择、逐条翻译
-- 保留旧版翻译组 Logo、自定义 Logo 与 `{T}` HTML 翻译模板
+- 保留旧版翻译组 Logo 和 `{T}` HTML 模板，并内置、逐份验证 [toastTemplates](https://github.com/cn-matsuri/toastTemplates) 的 49 个可见模板
+- 完整素材库可搜索，只有用户钉住的常用项才进入日常下拉菜单
+- 常用模板、最近选择、自定义 Logo、高级 HTML 草稿和命名模板均保存在浏览器本地，刷新后继续使用
+- Logo 按素材原始 CSS 像素等比显示，仅在超过 568px 出图内容区时防溢出，不再统一压小
 - 预览和下载共用 Chromium 渲染面；导出为 640 CSS px / 1280 实际像素的 2x PNG
 - 兼容旧 Bot 的 `/api/auto` + `/api/get_task=<id>` 异步协议
 - 默认使用免费公开的 FxTwitter/FxEmbed API，可切换到自建实例
@@ -98,7 +101,17 @@ Content-Type: application/json
 
 `tweet` 现在也可以传主页或用户名。`template` 可留空、直接传模板 HTML、传 `/template/name.txt` 本地路径，或传白名单内的 HTTPS 模板地址。远程模板限制为 64 KB，并拒绝内网地址。
 
-把 [toastTemplates](https://github.com/cn-matsuri/toastTemplates) 放到 `Matsuri_translation/frontend/template/`（该目录已被 Git 忽略），原来的 `/template/*.txt` Bot 参数和 `?template=/template/*.txt` 网页链接可以继续使用。旧模板的多样式注释格式也仍兼容。
+经过整理的 [toastTemplates](https://github.com/cn-matsuri/toastTemplates) 已随程序和预构建镜像发布，无需在服务器再 clone。`/template/*.txt`、`/templates/*.txt`、`?template=/template/*.txt` 和旧模板的多样式注释格式继续兼容。维护者可以在相邻源码目录运行 `pnpm templates:sync` 重新导入上游目录；生成的 `frontend/templates/` 不包含废弃的 25 MB 远程字体。
+
+## 个人模板与 Logo
+
+“管理常用与上传”会打开完整素材库；搜索到需要的字幕组后点“加入常用”，它才会出现在日常下拉菜单。上传 Logo 和保存高级 HTML 模板后也会自动加入常用，并写入浏览器 IndexedDB。
+
+- 自定义 Logo 仅接受 PNG、JPEG、WebP，保留原图尺寸和比例。
+- 本地素材没有 50 KB 的产品限制，实际容量由浏览器配额决定；服务器不会建立用户素材库副本。
+- 下载 PNG 时，当前 Logo 会临时随出图请求送入同一台 TweetToaster 的 Chromium 进程，任务结束后不保留。为防止单次请求耗尽公共服务内存，临时出图数据上限为 32 MB。
+- 如果未来实现账户/服务端同步，服务端持久化 Logo 应另行执行 50 KB 限制；当前版本没有服务端同步。
+- 高级模板必须包含 `{T}`。输入会自动保存草稿，也可以命名保存多份模板；危险标签、事件属性和远程资源会在出图前移除。
 
 ## 本地开发与测试
 
@@ -117,7 +130,7 @@ pnpm start
 pnpm test:live
 ```
 
-PR 会执行单元测试、浏览器下载回归、依赖审计，以及 amd64/arm64 镜像构建。下载回归会检查翻译组 Logo 的显示宽高比与源图一致，防止再次发生预览正常、下载拉伸。
+PR 会执行单元测试、浏览器下载回归、依赖审计，以及 amd64/arm64 镜像构建。回归测试会用 Chromium 逐一真实渲染全部 51 个模板入口，并检查素材加载、原始尺寸、宽高比和 640px 出图面溢出；另有超过 2 MB 的浏览器本地 Logo 与模板刷新持久化测试。
 
 ## 数据源与费用
 

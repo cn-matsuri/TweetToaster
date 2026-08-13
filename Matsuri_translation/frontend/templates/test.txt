@@ -1,0 +1,6 @@
+<!--茶铺logo样式1-->
+<div style="margin:10px 15px">
+    <img src="/templates/img/fbk_small.jpg" style="display:block;max-width:100%;height:auto">
+    <div style="font-size: 27px;width: 544px;word-break: break-word;">{T}</div>
+</div>
+<!--茶铺logo样式1-->

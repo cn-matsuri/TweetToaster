@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "node --watch src/index.mjs",
     "start": "node src/index.mjs",
+    "templates:sync": "node scripts/import-toast-templates.mjs",
     "test": "node --test test/*.test.mjs",
     "test:e2e": "node --test test/e2e.test.mjs",
     "test:live": "node --test test/live-provider.mjs"
