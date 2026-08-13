@@ -1,0 +1,15 @@
+services:
+  tweet-toaster:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8082:8082"
+    environment:
+      PORT: "8082"
+      TWEET_PROVIDER_URL: "https://api.fxtwitter.com/2/status"
+    volumes:
+      - tweet-cache:/app/Matsuri_translation/frontend/cache
+    shm_size: "512mb"
+
+volumes:
+  tweet-cache:

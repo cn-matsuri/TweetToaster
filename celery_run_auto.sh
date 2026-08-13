@@ -1,1 +1,0 @@
-celery -A Matsuri_translation.api.celery worker --loglevel info --concurrency=2 -Q auto
