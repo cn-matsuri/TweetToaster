@@ -90,6 +90,7 @@ test("browser editor and bot renderer share the working export surface", { timeo
     await page.locator("#template-input").fill("<div style=\"font-size:29px\">持久模板 {T}</div>");
     await page.locator("#template-name").fill("我的长期模板");
     await page.getByRole("button", { name: "保存到我的模板" }).click();
+    await page.locator("#logo-select option", { hasText: "我的长期模板" }).waitFor({ state: "attached" });
     await page.reload({ waitUntil: "networkidle" });
     await page.locator("#logo-select option").first().waitFor({ state: "attached" });
     const persistedOptions = await page.locator("#logo-select option").allTextContents();
