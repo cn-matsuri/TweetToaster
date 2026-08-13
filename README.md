@@ -1,20 +1,28 @@
-# TweetToaster 烤推机
+# 夏色祭工坊 TweetToaster 烤推机
 
 <p align="center">
   <img src="Matsuri_translation/frontend/img/brand-logo.png" width="112" alt="夏色祭工坊">
 </p>
 
-把公开的 X/Twitter 推文做成带中文翻译和翻译组 Logo 的 PNG。新版保留旧 Bot 协议和自定义模板，不购买 X API，也不依赖经常变化的 X 页面 DOM。
+## 简介
+这个烤肉机，其实是个推特嵌字机。  
+出现的初衷因该是，嵌字这件事儿，大家都爱不动了。  
+来回p图一样的东西，有些伤不起啊。  
 
-> 页头的工坊图标只用于 TweetToaster 自身品牌。导出图片中的翻译组 Logo 始终由使用者单独选择或上传，两者互不覆盖。
+于是，为了解决重复性工作，工坊招了程序员，也终于搞出来了这个项目。  
+
+此项目主要感谢以下贡献者  
+[FzXiao](https://github.com/fzxiao233) [b站](https://space.bilibili.com/2387011)  
+[飞雪](https://github.com/wudifeixue) [b站](http://space.bilibili.com/739848)  
+[鱼鱼](https://github.com/yuyuyzl) [b站](https://space.bilibili.com/1534590)  
 
 ## 功能
 
-- 接受 `suisei_hosimati`、`@suisei_hosimati`、`x.com/suisei_hosimati` 等主页输入
+- 接受 `7216_2nd`、`@7216_2nd`、`x.com/7216_2nd` 等主页输入
 - 接受带或不带 `https://` 的 `x.com/.../status/...`、`twitter.com/.../status/...` 单推链接
 - 主页模式列出多条近期公开推文，默认预览前三条，可任意勾选
 - 单推模式同时列出上下文、目标推文和其他用户回复，可逐条选择、逐条翻译
-- 保留三个旧版翻译组 Logo、自定义 Logo 与 `{T}` HTML 翻译模板
+- 保留旧版翻译组 Logo、自定义 Logo 与 `{T}` HTML 翻译模板
 - 预览和下载共用 Chromium 渲染面；导出为 640 CSS px / 1280 实际像素的 2x PNG
 - 兼容旧 Bot 的 `/api/auto` + `/api/get_task=<id>` 异步协议
 - 默认使用免费公开的 FxTwitter/FxEmbed API，可切换到自建实例
@@ -58,7 +66,7 @@ curl http://127.0.0.1:8082/api/health
 | `TWEET_PROVIDER_TIMEOUT_MS` | `15000` | 数据源超时毫秒数 |
 | `TWEET_TIMELINE_COUNT` | `12` | 主页最多显示的近期推文数，范围 1–20 |
 | `TWEET_REPLY_COUNT` | `20` | 单推最多显示的回复数，范围 0–30 |
-| `TEMPLATE_ALLOWED_HOSTS` | `tweet.wudifeixue.com,raw.githubusercontent.com` | Bot 可下载模板的 HTTPS 域名白名单 |
+| `TEMPLATE_ALLOWED_HOSTS` | `x.wudifeixue.com,raw.githubusercontent.com` | Bot 可下载模板的 HTTPS 域名白名单 |
 
 ## Bot API 兼容
 
@@ -118,22 +126,6 @@ PR 会执行单元测试、浏览器下载回归、依赖审计，以及 amd64/a
 ---
 
 ## 旧版项目记忆（保留）
-
-### 简介
-
-这个烤肉机，其实是个推特嵌字机。
-
-出现的初衷因该是，嵌字这件事儿，大家都爱不动了。
-
-来回 P 图一样的东西，有些伤不起啊。
-
-于是，为了解决重复性工作，工坊招了程序员，也终于搞出来了这个项目。
-
-此项目主要感谢以下贡献者：
-
-- [FzXiao](https://github.com/fzxiao233) · [B 站](https://space.bilibili.com/2387011)
-- [飞雪](https://github.com/wudifeixue) · [B 站](http://space.bilibili.com/739848)
-- [鱼鱼](https://github.com/yuyuyzl) · [B 站](https://space.bilibili.com/1534590)
 
 ![旧版使用演示](tt_how_to_use.gif)
 
