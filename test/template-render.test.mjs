@@ -32,6 +32,7 @@ test("every bundled template renders its real logo without distortion or overflo
         translate: "模板实际渲染测试",
         template,
         logo: "none",
+        fontSize: 30,
         noLikes: true
       }), { data: normalizedTweet(), template });
       const result = await page.locator("#capture .translation-block").evaluate((block) => {
@@ -46,10 +47,13 @@ test("every bundled template renders its real logo without distortion or overflo
           images,
           clientWidth: block.clientWidth,
           scrollWidth: block.scrollWidth,
-          text: block.textContent
+          text: block.textContent,
+          translationFontSizes: [...block.querySelectorAll(".template-translation-text")]
+            .map((node) => getComputedStyle(node).fontSize)
         };
       });
       assert.match(result.text, /模板实际渲染测试/, `${item.file}: translation is missing`);
+      assert.deepEqual(result.translationFontSizes, ["30px"], `${item.file}: selected translation font size was ignored`);
       assert.ok(result.images.length > 0, `${item.file}: logo is missing`);
       assert.ok(result.scrollWidth <= result.clientWidth, `${item.file}: content overflows the 640px export surface`);
       for (const image of result.images) {

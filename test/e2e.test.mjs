@@ -105,6 +105,11 @@ test("browser editor and bot renderer share the working export surface", { timeo
     const restoredTranslation = page.getByPlaceholder("输入中文翻译（留空则只显示原文）").first();
     await restoredTranslation.waitFor();
     await restoredTranslation.fill("虽然麻烦不断，直播还是开始了！");
+    const templatedTranslation = page.locator("#capture .template-translation-text").first();
+    await page.locator("#font-size-select").selectOption("30");
+    assert.equal(await templatedTranslation.evaluate((node) => getComputedStyle(node).fontSize), "30px");
+    await page.locator("#font-size-select").selectOption("23");
+    assert.equal(await templatedTranslation.evaluate((node) => getComputedStyle(node).fontSize), "23px");
     const builtinLogoDimensions = await page.locator("#capture .translation-block img").first().evaluate((image) => ({
       width: image.getBoundingClientRect().width,
       naturalWidth: image.naturalWidth
