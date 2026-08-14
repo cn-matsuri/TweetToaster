@@ -584,10 +584,10 @@
     return card;
   }
 
-  function safeTemplateHtml(template, translation) {
+  function safeTemplateHtml(template, translation, fontSize) {
     const escaped = document.createElement("div");
     escaped.textContent = translation;
-    const translationHtml = escaped.innerHTML.replace(/\n/g, "<br>");
+    const translationHtml = `<span class="template-translation-text" style="font-size:${fontSize}px">${escaped.innerHTML.replace(/\n/g, "<br>")}</span>`;
     const parsed = document.createElement("template");
     parsed.innerHTML = template.replaceAll("{T}", translationHtml);
     const allowedTags = new Set(["DIV", "SPAN", "P", "BR", "IMG", "STRONG", "EM", "B", "I", "SMALL", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "TABLE", "THEAD", "TBODY", "TR", "TD", "TH"]);
@@ -632,7 +632,7 @@
     if (state.template.trim()) {
       const variants = templateVariants(state.template);
       const variantIndex = state.botMode && index !== state.focalIndex && variants[1] ? 1 : 0;
-      block.append(safeTemplateHtml(variants[variantIndex], text));
+      block.append(safeTemplateHtml(variants[variantIndex], text, state.fontSize));
       return block;
     }
     const logo = logoSource();
