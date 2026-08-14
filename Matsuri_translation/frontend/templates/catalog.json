@@ -1,0 +1,523 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "486",
+      "name": "大空昴荞麦面馆",
+      "file": "486.txt",
+      "logo": "img/486_small.png",
+      "tags": [
+        "大空昴",
+        "Subaru"
+      ]
+    },
+    {
+      "id": "486_official",
+      "name": "大空昴官组",
+      "file": "486_official.txt",
+      "logo": "img/486_official_small.png",
+      "tags": [
+        "大空昴",
+        "Subaru",
+        "官组"
+      ]
+    },
+    {
+      "id": "azki",
+      "name": "AZKi 开拓者",
+      "file": "AZKi.txt",
+      "logo": "img/AZKi_small.png",
+      "tags": [
+        "AZKi",
+        "开拓者"
+      ]
+    },
+    {
+      "id": "aki",
+      "name": "亚绮罗森字幕组",
+      "file": "aki.txt",
+      "logo": "img/aki_small.png",
+      "tags": [
+        "Aki",
+        "亚绮"
+      ]
+    },
+    {
+      "id": "aki_new_ship",
+      "name": "Aki 深夜食堂（新版）",
+      "file": "aki_new_ship.txt",
+      "logo": "img/aki_new_ship_small.png",
+      "tags": [
+        "Aki",
+        "深夜食堂"
+      ]
+    },
+    {
+      "id": "aki_ship",
+      "name": "Aki 深夜食堂（旧版）",
+      "file": "aki_ship.txt",
+      "logo": "img/aki_ship_small.png",
+      "tags": [
+        "Aki",
+        "深夜食堂"
+      ]
+    },
+    {
+      "id": "amane",
+      "name": "天音彼方翻译组",
+      "file": "amane.txt",
+      "logo": "img/amane_small.png",
+      "tags": [
+        "天音彼方",
+        "Kanata"
+      ]
+    },
+    {
+      "id": "blank",
+      "name": "空白落款",
+      "file": "blank.txt",
+      "logo": "img/blank_small.png",
+      "tags": [
+        "空白",
+        "Blank"
+      ]
+    },
+    {
+      "id": "chigusa",
+      "name": "西园千草翻译组",
+      "file": "chigusa.txt",
+      "logo": "img/chigusa_small.png",
+      "tags": [
+        "西园千草",
+        "Chigusa"
+      ]
+    },
+    {
+      "id": "coco",
+      "name": "桐生会",
+      "file": "coco.txt",
+      "logo": "img/coco_small.jpg",
+      "tags": [
+        "桐生可可",
+        "Coco"
+      ]
+    },
+    {
+      "id": "emma",
+      "name": "艾玛下仆军团",
+      "file": "emma.txt",
+      "logo": "img/emma_small.png",
+      "tags": [
+        "艾玛",
+        "Emma"
+      ]
+    },
+    {
+      "id": "eng",
+      "name": "English Translation",
+      "file": "eng.txt",
+      "logo": "img/eng_small.png",
+      "tags": [
+        "English",
+        "英文"
+      ]
+    },
+    {
+      "id": "flare",
+      "name": "不知火芙蕾雅翻译组",
+      "file": "flare.txt",
+      "logo": "img/flare_small.png",
+      "tags": [
+        "不知火芙蕾雅",
+        "Flare"
+      ]
+    },
+    {
+      "id": "fubuki",
+      "name": "吹雪的猫咪茶铺",
+      "file": "fubuki.txt",
+      "logo": "img/fbk_small.jpg",
+      "tags": [
+        "白上吹雪",
+        "Fubuki",
+        "猫咪茶铺"
+      ]
+    },
+    {
+      "id": "gouma",
+      "name": "狗妈翻译组",
+      "file": "gouma.txt",
+      "logo": "img/gouma_small.png",
+      "tags": [
+        "狗妈",
+        "Gouma"
+      ]
+    },
+    {
+      "id": "haato",
+      "name": "赤井心保护协会",
+      "file": "haato.txt",
+      "logo": "img/haato_small.png",
+      "tags": [
+        "赤井心",
+        "Haato"
+      ]
+    },
+    {
+      "id": "himesaki",
+      "name": "姬咲柚流翻译组",
+      "file": "himesaki.txt",
+      "logo": "img/himesaki_medium.png",
+      "tags": [
+        "姬咲",
+        "Himesaki"
+      ]
+    },
+    {
+      "id": "intel",
+      "name": "Intel 翻译组",
+      "file": "intel.txt",
+      "logo": "img/intel_small.png",
+      "tags": [
+        "Intel"
+      ]
+    },
+    {
+      "id": "izuru",
+      "name": "奏手 Izuru 翻译组",
+      "file": "izuru.txt",
+      "logo": "img/izuru_small.png",
+      "tags": [
+        "奏手Izuru",
+        "Izuru"
+      ]
+    },
+    {
+      "id": "kanata",
+      "name": "天音彼方的碗工厂",
+      "file": "kanata.txt",
+      "logo": "img/kanata_small.png",
+      "tags": [
+        "天音彼方",
+        "Kanata",
+        "碗工厂"
+      ]
+    },
+    {
+      "id": "kano",
+      "name": "鹿友字幕组",
+      "file": "kano.txt",
+      "logo": "img/kano_small.png",
+      "tags": [
+        "鹿乃",
+        "Kano"
+      ]
+    },
+    {
+      "id": "kiara",
+      "name": "小鸟游琪亚拉翻译组",
+      "file": "kiara.txt",
+      "logo": "img/kiara_medium.png",
+      "tags": [
+        "小鸟游琪亚拉",
+        "Kiara"
+      ]
+    },
+    {
+      "id": "kirame",
+      "name": "空星辉翻译组",
+      "file": "kirame.txt",
+      "logo": "img/kirame_medium.png",
+      "tags": [
+        "空星辉",
+        "Kirame"
+      ]
+    },
+    {
+      "id": "korone",
+      "name": "戌神沁音翻译组",
+      "file": "korone.txt",
+      "logo": "img/korone_small.png",
+      "tags": [
+        "戌神沁音",
+        "Korone"
+      ]
+    },
+    {
+      "id": "kotone",
+      "name": "天神子兔音神社",
+      "file": "kotone.txt",
+      "logo": "img/kotone_small.png",
+      "tags": [
+        "天神子兔音",
+        "Kotone"
+      ]
+    },
+    {
+      "id": "lamy",
+      "name": "雪花菈米翻译组",
+      "file": "lamy.txt",
+      "logo": "img/lami_small.png",
+      "tags": [
+        "雪花菈米",
+        "Lamy"
+      ]
+    },
+    {
+      "id": "luna",
+      "name": "姬森璐娜翻译组",
+      "file": "luna.txt",
+      "logo": "img/luna_small.png",
+      "tags": [
+        "姬森璐娜",
+        "Luna"
+      ]
+    },
+    {
+      "id": "marine",
+      "name": "宝钟玛琳翻译组",
+      "file": "marine.txt",
+      "logo": "img/marine_small.jpg",
+      "tags": [
+        "宝钟玛琳",
+        "Marine"
+      ]
+    },
+    {
+      "id": "matsuri",
+      "name": "夏色祭工坊",
+      "file": "matsuri.txt",
+      "logo": "img/gongfang_official.png",
+      "tags": [
+        "夏色祭",
+        "Matsuri",
+        "工坊"
+      ],
+      "featured": true
+    },
+    {
+      "id": "mel",
+      "name": "夜空梅露翻译组（兼容链接）",
+      "file": "mel.txt",
+      "logo": "img/yozora_small.png",
+      "tags": [
+        "夜空梅露",
+        "Mel"
+      ],
+      "hidden": true
+    },
+    {
+      "id": "mio",
+      "name": "大神澪翻译组",
+      "file": "mio.txt",
+      "logo": "img/mio_small.png",
+      "tags": [
+        "大神澪",
+        "Mio"
+      ]
+    },
+    {
+      "id": "monoka",
+      "name": "星空莫娜卡",
+      "file": "monoka.txt",
+      "logo": "img/monoka_small.png",
+      "tags": [
+        "星空莫娜卡",
+        "Monoka"
+      ]
+    },
+    {
+      "id": "mori",
+      "name": "Mori Calliope 翻译组",
+      "file": "mori.txt",
+      "logo": "img/mori_small.png",
+      "tags": [
+        "Mori",
+        "Calliope"
+      ]
+    },
+    {
+      "id": "nana",
+      "name": "辣辣七奈军",
+      "file": "nana.txt",
+      "logo": "img/nana_small.png",
+      "tags": [
+        "七奈",
+        "Nana"
+      ]
+    },
+    {
+      "id": "nurse",
+      "name": "护士组模板",
+      "file": "nurse.txt",
+      "logo": "img/nurse_small.png",
+      "tags": [
+        "Nurse",
+        "护士"
+      ]
+    },
+    {
+      "id": "onion",
+      "name": "湊阿库娅的洋葱港",
+      "file": "onion.txt",
+      "logo": "img/onion_small.png",
+      "tags": [
+        "湊阿库娅",
+        "Aqua",
+        "洋葱港"
+      ]
+    },
+    {
+      "id": "pekora",
+      "name": "兔田佩克拉翻译组",
+      "file": "pekora.txt",
+      "logo": "img/pekora_small.png",
+      "tags": [
+        "兔田佩克拉",
+        "Pekora"
+      ]
+    },
+    {
+      "id": "rushia",
+      "name": "润羽露西娅翻译组",
+      "file": "rushia.txt",
+      "logo": "img/rushia_small.png",
+      "tags": [
+        "润羽露西娅",
+        "Rushia"
+      ]
+    },
+    {
+      "id": "shion",
+      "name": "诗音的魔法协会",
+      "file": "shion.txt",
+      "logo": "img/magic_small.png",
+      "tags": [
+        "紫咲诗音",
+        "Shion",
+        "魔法协会"
+      ],
+      "featured": true
+    },
+    {
+      "id": "sionew",
+      "name": "紫咲诗音新模板",
+      "file": "sionew.txt",
+      "logo": "img/sio_small.png",
+      "tags": [
+        "紫咲诗音",
+        "Shion"
+      ]
+    },
+    {
+      "id": "sora",
+      "name": "时乃空翻译组",
+      "file": "sora.txt",
+      "logo": "img/sora_small.png",
+      "tags": [
+        "时乃空",
+        "Sora"
+      ]
+    },
+    {
+      "id": "suisei",
+      "name": "星街彗星翻译组",
+      "file": "suisei.txt",
+      "logo": "img/suisei_small.png",
+      "tags": [
+        "星街彗星",
+        "Suisei"
+      ],
+      "featured": true
+    },
+    {
+      "id": "tamashoko",
+      "name": "魂笑组",
+      "file": "tamashoko.txt",
+      "logo": "img/tamashoko.png",
+      "tags": [
+        "魂笑",
+        "Tamashoko"
+      ]
+    },
+    {
+      "id": "test",
+      "name": "历史测试模板",
+      "file": "test.txt",
+      "logo": "img/fbk_small.jpg",
+      "tags": [
+        "Test"
+      ],
+      "hidden": true
+    },
+    {
+      "id": "towa",
+      "name": "常暗永远翻译组",
+      "file": "towa.txt",
+      "logo": "img/towa_small.png",
+      "tags": [
+        "常暗永远",
+        "Towa"
+      ]
+    },
+    {
+      "id": "tuanzhang",
+      "name": "团长翻译组",
+      "file": "tuanzhang.txt",
+      "logo": "img/tuanzhang_small.png",
+      "tags": [
+        "团长",
+        "Noel"
+      ]
+    },
+    {
+      "id": "voms",
+      "name": "VOMS 翻译组",
+      "file": "voms.txt",
+      "logo": "img/voms_small.png",
+      "tags": [
+        "VOMS"
+      ]
+    },
+    {
+      "id": "watame",
+      "name": "角卷绵芽翻译组",
+      "file": "watame.txt",
+      "logo": "img/watame_small.png",
+      "tags": [
+        "角卷绵芽",
+        "Watame"
+      ]
+    },
+    {
+      "id": "watson",
+      "name": "Amelia Watson 翻译组",
+      "file": "watson.txt",
+      "logo": "img/watson_small.png",
+      "tags": [
+        "Amelia",
+        "Watson"
+      ]
+    },
+    {
+      "id": "wtm",
+      "name": "WTM 翻译组",
+      "file": "wtm.txt",
+      "logo": "img/wtm_small.png",
+      "tags": [
+        "WTM"
+      ]
+    },
+    {
+      "id": "yozora",
+      "name": "夜空梅露翻译组",
+      "file": "yozora.txt",
+      "logo": "img/yozora_small.png",
+      "tags": [
+        "夜空梅露",
+        "Mel"
+      ]
+    }
+  ],
+  "source": "https://github.com/cn-matsuri/toastTemplates"
+}

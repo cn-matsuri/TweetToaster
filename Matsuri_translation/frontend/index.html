@@ -1,139 +1,165 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="zh-CN">
 <head>
-    <script>
-        var performanceData = {};
-        performanceData.pageHeadTop = new Date().getTime();
-    </script>
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-74076320-2"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-
-        function gtag() {
-            dataLayer.push(arguments);
-        }
-
-        gtag('js', new Date());
-
-        gtag('config', 'UA-74076320-2');
-    </script>
-    <!-- Google Tag Manager -->
-    <script>(function (w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({
-            'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-        });
-        var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : '';
-        j.async = true;
-        j.src =
-            'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
-        f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-NQ3MX77');</script>
-    <!-- End Google Tag Manager -->
-    <script src="jquery.min.js"></script>
-    <script>window.devicePixelRatio = 1</script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=640">
-    <meta name="screen-orientation" content="portrait">
-    <meta name="x5-orientation" content="portrait">
-
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>烤推机 - 夏色祭工坊</title>
-
-    <script src="popper.min.js"></script>
-    <script src="bootstrap.min.js"></script>
-    <script src="html2canvas.js"></script>
-
-    <script src="Blob.js"></script>
-    <script src="canvas-toBlob.js"></script>
-    <script src="FileSaver.min.js"></script>
-    <link href="bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
-    <script src="runes.js"></script>
-    <script src="api3.js"></script>
-    <link rel="stylesheet" href="index.css">
-    <script>
-        performanceData.pageHeadBottom = new Date().getTime();
-    </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fa">
+  <title>烤推机 · TweetToaster</title>
+  <link rel="icon" type="image/png" href="img/brand-logo.png">
+  <link rel="stylesheet" href="index.css">
+  <script defer src="FileSaver.min.js"></script>
+  <script defer src="api3.js"></script>
 </head>
-
 <body>
-<!-- Google Tag Manager (noscript) -->
-<noscript>
-    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NQ3MX77"
-            height="0" width="0" style="display:none;visibility:hidden"></iframe>
-</noscript>
-<!-- End Google Tag Manager (noscript) -->
+  <main class="app-shell">
+    <section class="preview-pane" aria-label="图片预览">
+      <div class="preview-toolbar">
+        <div>
+          <strong>图片预览</strong>
+          <span id="preview-hint">输入推文链接后开始</span>
+        </div>
+        <button class="ghost-button mobile-settings" id="show-settings" type="button">编辑</button>
+      </div>
+      <div class="preview-scroll">
+        <div id="capture" class="capture" aria-live="polite">
+          <div class="empty-preview" id="empty-preview">
+            <div class="skeleton profile-skeleton"></div>
+            <div class="skeleton line line-wide"></div>
+            <div class="skeleton line line-medium"></div>
+            <div class="skeleton media-skeleton"></div>
+            <div class="skeleton line line-short"></div>
+            <p>一张可以直接发布的烤推图，会出现在这里。</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-<div class="screenshotwrapper">
+    <aside class="settings-pane" id="settings-pane">
+      <div class="settings-scroll">
+        <header class="brand">
+          <img class="brand-mark" src="img/brand-logo.png" alt="夏色祭工坊">
+          <div>
+            <h1>烤推机</h1>
+            <p>TweetToaster · 重新开炉</p>
+          </div>
+          <button class="ghost-button close-settings" id="hide-settings" type="button" aria-label="关闭编辑面板">完成</button>
+        </header>
 
-    <div id="screenshots" style="width: 640px">
-        <div id="screenshotclip0" class="screenshotclip"
-             style="height: 800px;background-image: url('img/twittersample.jpg')"></div>
-    </div>
-<div class="settingsfiller"></div>
-</div>
-<div class="settingswrapper">
-    <div class="settingshandle">
-            ···
-    </div>
-    <div class="settingswrapperscroller">
-        <div class="autobanner container">
-                <h4 class="center">/// 全自动模式运行中，请稍候 ///</h4>
-                <p  class="center" id="autoprogress"></p>
+        <form id="tweet-form" class="query-form">
+          <label for="tweet-url">X 主页、@用户名或推文链接</label>
+          <div class="query-row">
+            <input id="tweet-url" name="url" type="text" inputmode="url"
+              placeholder="7216_2nd 或 x.com/user/status/123…" autocomplete="off" required>
+            <button class="primary-button" id="query-button" type="submit">查询</button>
+          </div>
+          <p class="field-help">支持用户名、@用户名和主页/单推链接，不用手打 https://</p>
+        </form>
+
+        <div id="status" class="status" hidden role="status"></div>
+
+        <section class="panel" id="translation-panel" hidden>
+          <div class="panel-heading">
+            <div>
+              <h2>翻译与选段</h2>
+              <p>每段翻译会紧跟在对应推文下方。</p>
             </div>
-        <div class="container settingscontainer" style="padding-top: 32px;padding-left: 16px">
+            <span class="count-badge" id="tweet-count"></span>
+          </div>
+          <div class="selection-actions" aria-label="批量选择">
+            <button class="mini-button" id="recommended-selection" type="button">仅目标</button>
+            <button class="mini-button" id="select-all" type="button">全选</button>
+            <button class="mini-button" id="select-none" type="button">清空</button>
+          </div>
+          <div id="translation-list" class="translation-list"></div>
+        </section>
 
-        <h4 style="margin-bottom: 1.5rem">夏色祭工坊：烤推机DEV</h4>
-        <div class="input-group mb-3">
-            <input type="text" class="form-control" placeholder="Twitter URL" id="url"
-                   value="https://twitter.com/7216_2nd"
-                   aria-label="Twitter URL" aria-describedby="button-submit">
-            <input type="text" class="form-control" id="progress"
-                   aria-describedby="button-submit" disabled
-                   style="display: none;border-top-left-radius: .25rem;border-bottom-left-radius: .25rem;">
-            <div class="input-group-append">
-                <button class="btn btn-outline-secondary" type="button" id="button-submit-fast">快速</button>
-                <button class="btn btn-outline-secondary" type="button" id="button-submit">完整</button>
+        <section class="panel" id="style-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>落款与模板</h2>
+              <p>这里选择的是翻译图片落款，与烤推机自己的品牌 Logo 无关。</p>
             </div>
-        </div>
-        <div class="tablewrapper mb-3">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th scope="col" style="width: 5%">#</th>
-                    <th scope="col" style="width: 40%">原文</th>
-                    <th scope="col" style="width: 45%">翻译</th>
-                </tr>
-                </thead>
-                <tbody id="translatetbody">
+          </div>
+          <div class="field-grid">
+            <label>
+              常用模板 / Logo
+              <select id="logo-select">
+                <option>正在读取模板库…</option>
+              </select>
+            </label>
+            <label>
+              翻译字号
+              <select id="font-size-select">
+                <option value="26">标准</option>
+                <option value="23">紧凑</option>
+                <option value="30">醒目</option>
+              </select>
+            </label>
+          </div>
+          <div class="asset-actions">
+            <button class="mini-button" id="manage-assets" type="button">管理常用与上传…</button>
+            <span id="active-asset-note">模板与 Logo 只保存在这个浏览器</span>
+          </div>
+          <input id="custom-logo" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+          <label class="check-row">
+            <input id="show-counts" type="checkbox" checked>
+            <span>显示回复、转发和点赞数</span>
+          </label>
+          <details class="template-details">
+            <summary>高级：自定义翻译 HTML 模板</summary>
+            <p>用 <code>{T}</code> 代表翻译文字。危险标签、脚本和事件属性会被自动移除。</p>
+            <textarea id="template-input" rows="7" spellcheck="false"
+              placeholder="<div class=&quot;my-template&quot;>{T}</div>"></textarea>
+            <div class="template-save-row">
+              <input id="template-name" type="text" maxlength="60" placeholder="给这个模板起个名字">
+              <button class="mini-button" id="save-template" type="button">保存到我的模板</button>
+              <button class="mini-button" id="clear-template" type="button">停用自定义 HTML</button>
+            </div>
+            <p>草稿和已保存模板会留在浏览器本地；不会保存到烤推机服务器。</p>
+          </details>
+        </section>
 
-                </tbody>
-            </table>
-        </div>
-        <div class="btn-group mb-3" style="width: 100%;">
-            <button class="btn btn-outline-primary" id="btnDownload" style="flex: 5 1 auto;"
-                    onclick="downloadAsCanvas()">下载图片
-            </button>
-            <button class="btn btn-outline-secondary" id="btnToggleTemplate">翻译模板</button>
-        </div>
-        <div class="input-group mb-3">
-            <textarea class="form-control" id="translatetemp" style="display: none;height: 400px;"
-                      aria-label="With textarea"></textarea>
+        <div class="action-bar" id="action-bar" hidden>
+          <button class="primary-button download-button" id="download-button" type="button">下载 PNG</button>
+          <button class="secondary-button" id="reset-button" type="button">重新开始</button>
         </div>
 
-            <!--😆😁😍😁🐷😝😄❤🚿-->
+        <footer>
+          数据仅用于生成图片；PNG 缓存会自动清理。由免费的公开推文数据源驱动。
+        </footer>
+      </div>
+    </aside>
+  </main>
 
+  <dialog id="asset-library" aria-labelledby="asset-library-title">
+    <div class="library-shell">
+      <header class="library-header">
+        <div>
+          <h2 id="asset-library-title">落款素材库</h2>
+          <p>模板库很大，下拉菜单只显示你钉住的常用项。</p>
+        </div>
+        <button class="ghost-button" id="close-library" type="button" aria-label="关闭素材库">完成</button>
+      </header>
+      <div class="library-toolbar">
+        <input id="asset-search" type="search" placeholder="搜索角色、字幕组或模板名称">
+        <button class="secondary-button" id="upload-logo" type="button">上传自己的 Logo</button>
+      </div>
+      <p class="library-privacy">自定义 Logo 原图保存在浏览器本地，不限 50 KB，也不会被统一缩小。下载时只会临时交给出图进程，不会存入素材库服务器。</p>
+      <section id="my-assets-section" hidden>
+        <div class="library-section-title">
+          <h3>我的素材</h3>
+          <span id="my-assets-count"></span>
+        </div>
+        <div class="asset-grid" id="my-assets-grid"></div>
+      </section>
+      <section>
+        <div class="library-section-title">
+          <h3>内置模板</h3>
+          <span id="builtin-assets-count"></span>
+        </div>
+        <div class="asset-grid" id="builtin-assets-grid"></div>
+      </section>
     </div>
-    </div>
-
-</div>
-
-<script>
-    performanceData.pageBodyBottom = new Date().getTime();
-</script>
+  </dialog>
 </body>
 </html>

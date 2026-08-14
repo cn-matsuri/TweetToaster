@@ -1,0 +1,35 @@
+<!--诗音Logo样式1-->
+<div style="margin:10px 15px">
+    <img src="/templates/img/magic_small.png" style="display:block;max-width:100%;height:auto">
+    <div style="font-size:27px;">{T}</div>
+</div>
+<!--诗音Logo样式1-->
+<!--回复覆盖-->
+<div style="width:100%; float:left;position:relative;">
+    <h6
+        style="width:100%;margin:0 0 0 74px;background-color:#fff; font-size:15px;line-height:20px;position:absolute;bottom:0px;width: 548px;word-break: break-word;">
+        {T}</h6>
+</div>
+<!--回复覆盖-->
+<!--样式1海星字体（首次加载较慢）-->
+<div style="margin:10px 15px">
+    <img src="/templates/img/magic_small.png" style="display:block;max-width:100%;height:auto">
+    <div style="font-size:27px;font-family:'黑体-简','PingFang SC','Microsoft YaHei',sans-serif;">{T}</div>
+</div>
+<!--样式1海星字体（首次加载较慢）-->
+<!--回复有竖线-->
+<div style="width:100%; padding-top:8px;background-image: url(/templates/img/twitterreplyblue.png);">
+    <h6 style="margin:0 0 0 98px">{T}</h6>
+</div>
+<!--回复有竖线-->
+<!--回复无竖线-->
+<div style="width:100%; padding-top:8px">
+    <h6 style="margin:0 0 0 98px">{T}</h6>
+</div>
+<!--回复无竖线-->
+<!--回复黑线后对齐-->
+<div style="margin:10px 15px">
+    &emsp;&emsp;&emsp;&ensp;<img src="/templates/img/magic_small.png" style="display:block;max-width:100%;height:auto">
+    <h4 style="margin:0 0 0 65px">{T}</h4>
+</div>
+<!--回复黑线后对齐-->

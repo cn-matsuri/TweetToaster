@@ -1,499 +1,1016 @@
-//twemoji.base = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/";
-var url;
-var saveUrlUser = false;
-var isSubmittedFast;
-function submit_task(isFast) {
-    performanceData.beforeSubmitTask = new Date().getTime();
-    isSubmittedFast = isFast;
-    url = $('#url').val();
-    dataLayer.push({"event": "taskSubmit", "tweetUrl": url});
-    url = url.replace("mobile.twitter.com", "twitter.com");
-    url = url.replace(/\?.*/, "");
-    $("#url").val(url);
-    //var translation = $('#translation').val().replace(/\r\n|\r|\n/g, '\\r');
-    $('#progress').val("开始获取图像");
-    $("#autoprogress").text("开始获取图像");
-    $('#url').css("display", "none");
-    $('#progress').css("display", "");
-    $('#button-submit').attr("disabled", "disabled");
-    $('#button-submit-fast').attr("disabled", "disabled");
-    $("#translatetbody").html("");
-    $("#screenshots").html("        <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
-        "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
-    var jqxhr = $.ajax({
-        url: "/api/tasks",
-        type: "post",
-        data: JSON.stringify({
-            "url": url,
-            "fast": isFast || false
-        }),
-        contentType: "application/json; charset=utf-8",
-        dataType: "json",
-    }).done(function (data) {
-        fetch_img(data.task_id)
-    })
-}
+(function () {
+  "use strict";
 
-function fetch_img(task_id) {
-    performanceData.beforeFetchImg = new Date().getTime();
-    var count = 0;
-    var locked = false;
-    var event = setInterval(function () {
-        if (locked) return;
-        locked = true;
-        count += 1;
+  const state = {
+    data: null,
+    customLogo: "",
+    translations: [],
+    included: [],
+    logo: "official",
+    fontSize: 26,
+    showCounts: true,
+    template: "",
+    botMode: false,
+    focalIndex: 0,
+    activeAsset: "builtin:matsuri",
+    catalog: [],
+    userAssets: [],
+    draftTemplate: ""
+  };
 
-        var jqxhr = $.ajax({
-            url: '/api/get_task=' + task_id,
-            success: function (data, status, xhr) {
-                locked = false;
-                if (data.state === "SUCCESS") {
-                    performanceData.getTaskSucccess = new Date().getTime();
-                    var filename = data.result.substr(0, data.result.indexOf("|"));
-                    var clipinfo = data.result.substr(data.result.indexOf("|") + 1);
-                    clipinfo = JSON.parse(clipinfo);
-                    console.log(clipinfo);
-                    if (isSubmittedFast && clipinfo[0] && clipinfo[0]["path"] && !url.endsWith(clipinfo[0]["path"])) {
-                        submit_task(false);
-                        $('#progress').val("可能为回复推文地址，正在请求完整图像");
-                        $("#autoprogress").text("可能为回复推文地址，正在请求完整图像");
-                        clearInterval(event);
-                        return;
-                    }
-                    show_translate(clipinfo);
-                    refresh_trans_div();
+  const LOGOS = {
+    official: "img/gongfang_official.png",
+    keke: "img/gongfang_keke.png",
+    magic: "img/magic_small.png"
+  };
 
+  const DEFAULT_FAVORITES = ["builtin:matsuri", "builtin:suisei", "builtin:shion", "builtin:fubuki"];
+  const PREFERENCES_KEY = "tweetToaster.preferences.v1";
+  const DATABASE_NAME = "tweetToasterAssets";
+  const DRAFT_ID = "advanced-template-draft";
+  let draftTimer;
+  let databasePromise;
+  let persistentStorageAvailable = true;
 
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('GET', 'cache/' + filename + '.png');
-                    xhr.onprogress = function (event) {
-                        if (event.lengthComputable) {
-                            //console.log((event.loaded / event.total) * 100); // 进度
-                            $('#progress').val("正在下载图片 (" + Math.round((event.loaded / event.total) * 100) + "%)");
-
-                            $("#autoprogress").text("正在下载图片 (" + Math.round((event.loaded / event.total) * 100) + "%)");
-                        }
-                    };
-
-                    xhr.onload = function (e) {
-                        if (saveUrlUser) if ($("#url").val().split("/")[3] != null) localStorage.setItem("lastUser", $("#url").val().split("/")[3]);
-                        saveUrlUser = false;
-                        performanceData.imageLoaded = new Date().getTime();
-                        $("#screenshots").html("            <div id=\"screenshotclip0\" class=\"screenshotclip\"\n" +
-                            "             style=\"height: 800px;background-image: url('img/twittersample.jpg')\"></div>");
-                        $("#screenshotclip0").css("background-image", 'url("cache/' + filename + '.png")');
-
-                        $('#url').css("display", "");
-                        $('#progress').css("display", "none");
-
-                        $('#button-submit').removeAttr("disabled");
-                        $('#button-submit-fast').removeAttr("disabled");
-                        clip_screenshot();
-                        var translateTarget = 0;
-                        for (var i = 0; i < clipinfo.length; i++) if (url.endsWith(clipinfo[i]["path"]) || clipinfo[i].textSize === "23") {
-                            translateTarget = i;
-                            break;
-                        }
-                        for (var i = 1; i <= translateTarget; i++)
-                            if (!$("#show" + i).is(':checked')) $("#show" + i).click();
-                        if (defaultTranslate != null) {
-                            var multiTranslateIndex = defaultTranslate.trim().match(/^##[0-9]+$/gm);
-                            if (multiTranslateIndex != null) {
-                                multiTranslateIndex = multiTranslateIndex.map(s => +s.substr(2) - 1);
-                                var multiTranslation = defaultTranslate.trim().split(/\n?^##[0-9]+$\n?/gm).slice(1);
-                                for (var i = 0; i < multiTranslateIndex.length; i++) {
-                                    if (!$("#show" + multiTranslateIndex[i]).is(':checked')) $("#show" + i).click();
-                                    $("#transtxt" + multiTranslateIndex[i]).val(multiTranslation[i]);
-                                    if (multiTranslateIndex[i] != translateTarget) templatechosen[multiTranslateIndex[i]] = 1;
-                                }
-                            } else
-                                $("#transtxt" + translateTarget).val(defaultTranslate);
-                        }
-                        refresh_trans_div();
-                        if (defaultTranslate != null || getUrlParam("out") != null) {
-                            downloadAsCanvas();
-                            if (getUrlParam("out") == null) {
-                                $("#autoprogress").text("正在保存");
-                                setTimeout(function () {
-                                    $("#autoprogress").text("结束");
-                                }, 1000);
-
-                                setTimeout(function () {
-                                    window.location.href = "/";
-                                }, 3000)
-                            }
-                        }
-                    };
-                    xhr.send();
-
-
-                    clearInterval(event);
-                }
-            },
-            error: function (xhr, info, e) {
-                console.log(info);
-                alert("服务器错误，请检查您提供的地址是否为正确的推特地址");
-                $('#url').css("display", "");
-                $('#progress').css("display", "none");
-
-                $('#button-submit').removeAttr("disabled");
-                $('#button-submit-fast').removeAttr("disabled");
-            },
-            dataType: 'json',
-        });
-        $('#progress').val("等待服务器响应，已尝试" + count + "次");
-        $("#autoprogress").text("等待服务器响应，已尝试" + count + "次");
-    }, 1000)
-}
-
-var tweetpos;
-var templatechosen = [];
-var defaultTranslate;
-
-function show_translate(data) {
-    console.log(data);
-    tweetpos = data;
-    templatechosen = [];
-    $("#translatetbody").html("");
-    for (var i = 0; i < tweetpos.length; i++) {
-        templatechosen.push("");
-        var str = tweetpos[i].text || "";
-        str = str.replace(/\n/g, "<br>");
-        str = str.replace(/  /g, "&nbsp; ");
-        $("#translatetbody").append("<tr>\n" +
-            "      <th scope=\"row\">" +
-            "<input type=\'checkbox\' " + (i == 0 ? "checked" : "") + " id=\'show" + i + "\'>" +
-            "</th>\n" +
-            "      <td class=\'originaltext\'>" + str + "</td>\n" +
-            "    <td><div class=\'translatetd\' id=\'translatetd" + i + "\' " + (i > 0 ? "style='display:none'" : "") + " ><div class=\'input-group\'>" +
-            "<textarea id=\'transtxt" + i + "\' class=\'form-control\' " + (i == 0 ? "style='height:100px'" : "") + "></textarea></div>\n" +
-            "      <div class=\"dropdown templatedropdown\">\n" +
-            "  <button class=\"btn btn-outline-secondary w-100 dropdown-toggle\" type=\"button\" id=\"dropdownMenu" + i + "\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">\n    模板选择\n  </button>\n  <div class=\"dropdown-menu dropdownmenuitems\" aria-labelledby=\"dropdownMenu" + i + "\" id=\"dropdownmenuitems" + i + "\">\n  </div>\n</div>\n      " +
-            "</div></td>\n" +
-            "    </tr>");
-
-        $("#transtxt" + i).focus(function () {
-            $("#screenshotclip" + $("tbody textarea").index(this))[0].scrollIntoView();
-        });
-        $("#transtxt" + i).keyup(function () {
-            refresh_trans_div();
-            $("#screenshotclip" + $("tbody textarea").index(this))[0].scrollIntoView();
-
-        });
-        $("#transtxt" + i).change(function () {
-            refresh_trans_div();
-            $("#screenshotclip" + $("tbody textarea").index(this))[0].scrollIntoView();
-
-        });
-        $("#show" + i).change(function () {
-            refresh_trans_div();
-            $("#screenshotclip" + $("tbody input").index(this))[0].scrollIntoView();
-
-        });
-
-    }
-    $(".originaltext").click(function () {
-        if (document.getSelection().type != "Range" && window.getSelection().type != "Range")
-            $("#show" + $(".originaltext").index(this)).click();
-    })
-}
-
-function toggleLikes(obj) {
-    if ($(obj).hasClass("nolikes")) {
-        $(obj).css("height", $(obj).height() + 55);
-        $(obj).removeClass("nolikes");
-        return true;
-    } else {
-        $(obj).css("height", $(obj).height() - 55);
-        $(obj).addClass("nolikes");
-        return false;
-    }
-}
-
-function clip_screenshot() {
-    $("#screenshotclip" + 0).click(function () {
-        goto($(this)[0].id);
-    });
-
-    for (var i = 0; i < tweetpos.length; i++) {
-        $("#screenshotclip" + i).css("height", tweetpos[i].bottom - (i == 0 ? 0 : tweetpos[i - 1].blockbottom));
-        $("#screenshotclip" + i).after("<div class='screenshotclip' id='" + "screenshotclip" + (i + 1) + "'></div>");
-        $("#screenshotclip" + i).after("<div class='screenshotclip' id='" + "screenshotclip" + (i + 1000) + "'></div>");
-        $("#screenshotclip" + (i + 1)).css("background-image", $("#screenshotclip" + i).css("background-image"));
-        $("#screenshotclip" + (i + 1000)).css("background-image", $("#screenshotclip" + i).css("background-image"));
-        $("#screenshotclip" + (i + 1)).css("width", $("#screenshotclip" + i).css("width"));
-        $("#screenshotclip" + (i + 1000)).css("width", $("#screenshotclip" + i).css("width"));
-        $("#screenshotclip" + (i + 1)).css("height", -tweetpos[i].blockbottom);
-        $("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom);
-        $("#screenshotclip" + (i + 1)).css("background-position-y", -tweetpos[i].blockbottom);
-        $("#screenshotclip" + (i + 1000)).css("background-position-y", -tweetpos[i].bottom);
-        $("#screenshotclip" + (i + 1)).css("display", "none");
-        $("#screenshotclip" + (i + 1000)).css("display", "none");
-        $("#screenshotclip" + (i + 1)).click(function () {
-            goto($(this)[0].id);
-        });
-
-        if (("https://twitter.com" + tweetpos[i].path) == $('#url').val() || tweetpos[i].textSize === "23") {
-            //$("#screenshotclip" + (i + 1000)).css("height", tweetpos[i].blockbottom - tweetpos[i].bottom-109);
-            //$("#screenshotclip" + (i + 1000)).addClass("nolikes");
-            if (localStorage.getItem("isLikeShown") != null && (!JSON.parse(localStorage.getItem("isLikeShown"))))
-                toggleLikes($("#screenshotclip" + (i + 1000))[0]);
-            else if (getUrlParam("noLikes") != null) toggleLikes($("#screenshotclip" + (i + 1000))[0]);
-            $("#screenshotclip" + (i + 1000)).click(function () {
-                localStorage.setItem("isLikeShown", JSON.stringify(toggleLikes(this)));
-            });
-        }
-        else
-            $("#screenshotclip" + (i + 1000)).click(function () {
-                goto($(this)[0].id);
-            });
-
-        $("#screenshotclip" + i).after("<div class='screenshotclip' id='" + "translatediv" + i + "'></div>");
-
-        $("#translatediv" + i).click(function () {
-            goto($(this)[0].id);
-        });
-    }
-}
-
-var gotoDoubleClick = "";
-var gotoDoubleClickTimeout = -1;
-function goto(id) {
-    if (gotoDoubleClick != id) {
-        clearTimeout(gotoDoubleClickTimeout);
-        gotoDoubleClick = id;
-        gotoDoubleClickTimeout = setTimeout(() => {
-            gotoDoubleClick = "";
-        }, 300);
-        return;
-    }
-    id = id.replace(/[^0-9]/g, "");
-    id = parseInt(id);
-    if (id >= 1000) id -= 1000;
-    //console.log("goto called "+id);
-}
-
-function refresh_trans_div() {
-    var template = $("#translatetemp").val();
-    if (template != "") localStorage.setItem("translatetemp", template);
-    var isMultiMode = true;
-    var templates = [];
-    var names = template.match(/<!--.*-->/g);
-    var contents = template.split(/<!--.*-->/g);
+  function readPreferences() {
     try {
-        for (var i = 0; i < names.length; i++) {
-            names[i] = names[i].replace("<!--", "").replace("-->", "");
-        }
-        for (var i = 0; i < names.length / 2; i++) {
-            if (names[i * 2] == names[i * 2 + 1]) {
-                templates.push({
-                    name: names[i * 2], content: contents[i * 2 + 1]
-                })
-            } else {
-                throw null;
-            }
-        }
-    } catch (e) {
-        isMultiMode = false;
-        templates = [{name: "", content: template}];
+      const value = JSON.parse(localStorage.getItem(PREFERENCES_KEY) || "{}");
+      return {
+        favorites: Array.isArray(value.favorites) ? value.favorites : [...DEFAULT_FAVORITES],
+        activeAsset: typeof value.activeAsset === "string" ? value.activeAsset : "builtin:matsuri",
+        fontSize: Number(value.fontSize) || 26,
+        showCounts: value.showCounts !== false
+      };
+    } catch {
+      return { favorites: [...DEFAULT_FAVORITES], activeAsset: "builtin:matsuri", fontSize: 26, showCounts: true };
     }
-    //console.log(templates);
-    if (isMultiMode) $('.translatetd').addClass("multi"); else $('.translatetd').removeClass("multi");
-    $('.dropdownmenuitems').html("");
-    for (var i = 0; i < templates.length; i++) {
-        $('.dropdownmenuitems').append('<button class="dropdown-item templatebutton" type="button">' + templates[i].name + '</button>')
+  }
+
+  const preferences = readPreferences();
+  state.fontSize = preferences.fontSize;
+  state.showCounts = preferences.showCounts;
+  state.activeAsset = preferences.activeAsset;
+
+  function writePreferences() {
+    try {
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+    } catch {
+      // Private browsing can disable localStorage. The current session still works.
     }
-    $('.templatebutton').click(function () {
-        var i = $('.dropdownmenuitems').index($(this).parent());
-        templatechosen[i] = $(this).text().trim();
-        $("#translatediv" + i)[0].scrollIntoView();
-        refresh_trans_div();
+  }
+
+  function openDatabase() {
+    if (!databasePromise) {
+      databasePromise = new Promise((resolve, reject) => {
+        const request = indexedDB.open(DATABASE_NAME, 1);
+        request.onupgradeneeded = () => request.result.createObjectStore("assets", { keyPath: "id" });
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+    return databasePromise;
+  }
+
+  async function assetTransaction(mode, operation) {
+    const database = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction("assets", mode);
+      const request = operation(transaction.objectStore("assets"));
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+      transaction.onabort = () => reject(transaction.error);
     });
-    for (var i = 0; i < tweetpos.length; i++) {
-        if ($("#show" + i).is(':checked')) {
-            $("#screenshotclip" + i).show();
-            $("#screenshotclip" + (i + 1000)).show();
-            $("#translatediv" + i).show();
-            $("#translatetd" + i).show();
+  }
 
-        } else {
-            $("#screenshotclip" + i).hide();
-            $("#screenshotclip" + (i + 1000)).hide();
-            $("#translatediv" + i).hide();
-            $("#translatetd" + i).hide();
-        }
-        $("#translatediv" + i).html("");
-        if ($("#transtxt" + i).val() != "") {
-            var transtxt = $("#transtxt" + i).val();
+  const getStoredAssets = () => assetTransaction("readonly", (store) => store.getAll());
+  const putStoredAsset = (asset) => assetTransaction("readwrite", (store) => store.put(asset));
+  const deleteStoredAsset = (id) => assetTransaction("readwrite", (store) => store.delete(id));
 
-
-            transtxt = transtxt.replace(/https?:\/\/([^ \n]+)/g, function (word) {
-                console.log(word);
-                return "<span class='link'>" + (
-                    word.replace(/https?:\/\//g, "").length > 25 ? (word.replace(/https?:\/\//g, "").substr(0, 25) + "...") : (word.replace(/https?:\/\//g, ""))
-                ) + "</span>"
-            })
-                .replace(/(^@[^ \n]+|\n@[^ \n]+| @[^ \n]+|^#[^ \n]*[^1234567890 \n][^ \n]*|\n#[^ \n]*[^1234567890 \n][^ \n]*| #[^ \n]*[^1234567890 \n][^ \n]*)/g, "<span class='link'>$1</span>")
-                .replace(/\n/g, "<br>")
-                .replace(/  /g, "&nbsp; ");
-            try {
-                const filterEmojis = s => runes(s).filter(o => twemoji.test(o));
-                const rw = '[CQ:face,id=13]';
-                const originalEmojis = filterEmojis(tweetpos[i].text);
-                const translatesEmojis = transtxt.split(rw).map(s => filterEmojis(s)).reduce((p, c) => [...p, undefined, ...c]);
-                originalEmojis.map((o, i) => translatesEmojis[i] ? undefined : o).filter(o => o).forEach(o => {
-                    transtxt = transtxt.replace(rw, o)
-                });
-
-            } catch (e) {
-            }
-
-            var templateusing = template;
-            if (isMultiMode) {
-                templateusing = templates[0].content;
-
-                if (typeof templatechosen[i] === 'number') templateusing = templates[templatechosen[i]].content;
-                else
-                    for (var j = 0; j < templates.length; j++)
-                        if (templates[j].name == templatechosen[i]) templateusing = templates[j].content;
-            }
-            try {
-                $("#translatediv" + i).html(twemoji.parse(templateusing.replace("{T}", transtxt), {base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/'}));
-            } catch {
-                $("#translatediv" + i).html((templateusing.replace("{T}", transtxt), {base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/'}));
-
-            }
-
-        }
+  async function persistAsset(asset) {
+    if (!persistentStorageAvailable) return false;
+    try {
+      await putStoredAsset(asset);
+      return true;
+    } catch {
+      persistentStorageAvailable = false;
+      setStatus("浏览器无法持久保存素材；当前素材仍可在本次打开期间使用。", "error");
+      return false;
     }
-    // $("#screenshots img.emoji").each(function(i,obj){
-    //     $(obj).replaceWith("<div class='emoji' style='background-image: url(\""+$(obj).attr("src")+"\")'></div>")
-    // })
+  }
 
+  function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  }
 
-}
+  function assetChoice(id) {
+    return `user:${id}`;
+  }
 
-function getUrlParam(k) {
-    var regExp = new RegExp('([?]|&)' + k + '=([^&]*)(&|$)');
-    var result = window.location.href.match(regExp);
-    if (result) {
-        return decodeURIComponent(result[2]);
+  function catalogChoice(id) {
+    return `builtin:${id}`;
+  }
+
+  function catalogItemFromChoice(choice) {
+    if (!choice.startsWith("builtin:")) return null;
+    return state.catalog.find((item) => item.id === choice.slice("builtin:".length)) || null;
+  }
+
+  function userAssetFromChoice(choice) {
+    if (!choice.startsWith("user:")) return null;
+    return state.userAssets.find((item) => item.id === choice.slice("user:".length)) || null;
+  }
+
+  const $ = (selector) => document.querySelector(selector);
+
+  function proxyUrl(url) {
+    return url ? `/api/media?url=${encodeURIComponent(url)}` : "";
+  }
+
+  function setStatus(message, type = "info") {
+    const element = $("#status");
+    if (!message) {
+      element.hidden = true;
+      return;
+    }
+    element.hidden = false;
+    element.className = `status${type === "error" ? " error" : ""}`;
+    element.textContent = message;
+  }
+
+  function choiceName(choice) {
+    if (choice === "none") return "不显示落款";
+    if (choice === "draft") return "高级模板草稿";
+    const catalogItem = catalogItemFromChoice(choice);
+    if (catalogItem) return catalogItem.name;
+    const userAsset = userAssetFromChoice(choice);
+    if (userAsset) return userAsset.name;
+    return "未选择落款";
+  }
+
+  function addSelectOption(select, value, label) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    select.append(option);
+  }
+
+  function activeChoiceExists(choice) {
+    return choice === "none" || choice === "draft" || Boolean(catalogItemFromChoice(choice) || userAssetFromChoice(choice));
+  }
+
+  function refreshAssetSelect() {
+    const select = $("#logo-select");
+    if (!select) return;
+    select.replaceChildren();
+    const pinnedChoices = [];
+    for (const choice of preferences.favorites) {
+      const item = catalogItemFromChoice(choice);
+      if (item && !item.hidden) pinnedChoices.push(choice);
+    }
+    for (const asset of state.userAssets.filter((item) => item.pinned)) pinnedChoices.push(assetChoice(asset.id));
+    if (activeChoiceExists(state.activeAsset) && !pinnedChoices.includes(state.activeAsset) && state.activeAsset !== "none") {
+      addSelectOption(select, state.activeAsset, `当前 · ${choiceName(state.activeAsset)}`);
+    }
+    if (pinnedChoices.length) {
+      const group = document.createElement("optgroup");
+      group.label = "我的常用";
+      for (const choice of pinnedChoices) addSelectOption(group, choice, choiceName(choice));
+      select.append(group);
+    }
+    addSelectOption(select, "none", "不显示落款");
+    addSelectOption(select, "manage", "管理常用与上传…");
+    select.value = activeChoiceExists(state.activeAsset) ? state.activeAsset : "none";
+    $("#active-asset-note").textContent = `${choiceName(state.activeAsset)} · 本地保存`;
+  }
+
+  async function fetchTemplateFile(item) {
+    const response = await fetch(`/templates/${encodeURIComponent(item.file)}`);
+    if (!response.ok) throw new Error(`模板读取失败 (${response.status})`);
+    return response.text();
+  }
+
+  async function applyAssetChoice(choice, { persist = true } = {}) {
+    const catalogItem = catalogItemFromChoice(choice);
+    const userAsset = userAssetFromChoice(choice);
+    if (catalogItem) {
+      state.template = await fetchTemplateFile(catalogItem);
+      state.logo = "none";
+      state.customLogo = "";
+    } else if (userAsset?.kind === "logo") {
+      state.template = "";
+      state.logo = "custom";
+      state.customLogo = await blobToDataUrl(userAsset.blob);
+    } else if (userAsset?.kind === "template") {
+      state.template = userAsset.html;
+      state.logo = "none";
+      state.customLogo = "";
+      $("#template-input").value = userAsset.html;
+      $("#template-name").value = userAsset.name;
+    } else if (choice === "draft") {
+      state.template = $("#template-input").value;
+      state.logo = "none";
+      state.customLogo = "";
     } else {
-        return null;
+      choice = "none";
+      state.template = "";
+      state.logo = "none";
+      state.customLogo = "";
     }
-}
+    state.activeAsset = choice;
+    if (persist) {
+      preferences.activeAsset = choice;
+      writePreferences();
+    }
+    refreshAssetSelect();
+    renderPreview();
+  }
 
-function loadJS(url, callback) {
-    var script = document.createElement('script'),
-        fn = callback || function () {
-        };
-    script.type = 'text/javascript';
-    if (script.readyState) {
-        script.onreadystatechange = function () {
-            if (script.readyState == 'loaded' || script.readyState == 'complete') {
-                script.onreadystatechange = null;
-                fn();
-            }
-        }
+  function replaceUserAsset(asset) {
+    const index = state.userAssets.findIndex((item) => item.id === asset.id);
+    if (index >= 0) state.userAssets[index] = asset;
+    else state.userAssets.push(asset);
+  }
+
+  async function togglePinned(choice) {
+    const catalogItem = catalogItemFromChoice(choice);
+    const userAsset = userAssetFromChoice(choice);
+    if (catalogItem) {
+      const favorites = new Set(preferences.favorites);
+      if (favorites.has(choice)) favorites.delete(choice);
+      else favorites.add(choice);
+      preferences.favorites = [...favorites];
+      writePreferences();
+    } else if (userAsset) {
+      const updated = { ...userAsset, pinned: !userAsset.pinned };
+      const { previewUrl, ...stored } = updated;
+      await persistAsset(stored);
+      replaceUserAsset(updated);
+    }
+    refreshAssetSelect();
+    renderAssetLibrary();
+  }
+
+  function createAssetCard({ choice, name, subtitle, image, custom = false }) {
+    const card = document.createElement("article");
+    card.className = "asset-card";
+    const preview = document.createElement("div");
+    preview.className = `asset-preview${image ? "" : " template-icon"}`;
+    if (image) {
+      const logo = document.createElement("img");
+      logo.src = image;
+      logo.alt = "";
+      preview.append(logo);
     } else {
-        script.onload = function () {
-            fn();
-        };
+      preview.textContent = "{T}\nHTML";
     }
-    script.src = url;
-    document.getElementsByTagName('head')[0].appendChild(script);
-}
-
-if (getUrlParam('debug'))
-    loadJS("https://cdn.bootcdn.net/ajax/libs/vConsole/3.3.4/vconsole.min.js", () => {
-        new VConsole();
+    const body = document.createElement("div");
+    body.className = "asset-card-body";
+    const title = document.createElement("strong");
+    title.textContent = name;
+    const detail = document.createElement("small");
+    detail.textContent = subtitle;
+    const actions = document.createElement("div");
+    actions.className = "asset-card-actions";
+    const use = document.createElement("button");
+    use.className = "mini-button";
+    use.type = "button";
+    use.textContent = state.activeAsset === choice ? "使用中" : "使用";
+    use.disabled = state.activeAsset === choice;
+    use.addEventListener("click", async () => {
+      await applyAssetChoice(choice);
+      $("#asset-library").close();
     });
-$(function () {
-    if (getUrlParam("template") != null && getUrlParam("template").length > 0 && getUrlParam("out") == null) {
-        $.get(getUrlParam("template"), function (data, status) {
-            console.log(data);
-            if (confirm("将要用链接的内容替代现有的翻译模板，确认覆盖？")) localStorage.setItem("translatetemp", data);
-            window.location.href = "/";
-        });
+    const pin = document.createElement("button");
+    pin.className = "mini-button pin-button";
+    pin.type = "button";
+    const userAsset = userAssetFromChoice(choice);
+    const pinned = userAsset ? userAsset.pinned : preferences.favorites.includes(choice);
+    pin.setAttribute("aria-pressed", String(Boolean(pinned)));
+    pin.textContent = pinned ? "★ 常用" : "☆ 加入常用";
+    pin.addEventListener("click", () => togglePinned(choice).catch((error) => setStatus(error.message, "error")));
+    actions.append(use, pin);
+    if (custom) {
+      const remove = document.createElement("button");
+      remove.className = "mini-button";
+      remove.type = "button";
+      remove.textContent = "删除";
+      remove.addEventListener("click", () => removeUserAsset(choice));
+      actions.append(remove);
     }
-    $("#btnToggleTemplate").click(function () {
-        if ($("#translatetemp").css("display") == "none") $("#translatetemp").show(); else $("#translatetemp").hide();
-    });
-    $('#button-submit').click(function () {
-        saveUrlUser = true;
-        submit_task();
-    });
-    $('#button-submit-fast').click(function () {
-        saveUrlUser = true;
-        submit_task(true);
-    });
-    if (localStorage.getItem("translatetemp") == null) localStorage.setItem("translatetemp", '<div style="margin:10px 38px">\n' +
-        '<img src="img/gongfang_official.png" height="38">\n' +
-        '<div style="font-size:27px;">{T}</div>\n' +
-        '</div>')
-    $("#translatetemp").val(localStorage.getItem("translatetemp"));
-    $("#translatetemp").keyup(refresh_trans_div);
-    $(".screenshotwrapper").on("touchstart", function () {
-        $("body").addClass("overview");
-    });
-    $(".settingswrapper").on("touchstart", function () {
-        $("body").removeClass("overview");
-    });
+    body.append(title, detail, actions);
+    card.append(preview, body);
+    return card;
+  }
 
-    if (localStorage.getItem("lastUser") != null) $("#url").val("https://twitter.com/" + localStorage.getItem("lastUser"));
-    $("#url").keypress(function (event) {
-        if (event.keyCode == 13) {
-            submit_task(true);
-        }
-    });
+  function customAssetImage(asset) {
+    if (asset.kind !== "logo") return "";
+    if (!asset.previewUrl) asset.previewUrl = URL.createObjectURL(asset.blob);
+    return asset.previewUrl;
+  }
 
-
-    if (getUrlParam("tweet") != null && getUrlParam("tweet").length > 0) {
-        performanceData.autoBeforeTemplate = new Date().getTime();
-        $.ajaxSettings.async = false;
-        if (getUrlParam("template") != null && getUrlParam("template").length > 0) {
-            $.get(getUrlParam("template"), function (data, status) {
-                localStorage.setItem("translatetemp", data);
-                $("#translatetemp").val(localStorage.getItem("translatetemp"));
-            });
-        }
-        $.ajaxSettings.async = true;
-        performanceData.autoAfterTemplate = new Date().getTime();
-        $('#url').val(getUrlParam("tweet"));
-
-        if (getUrlParam("translate") != null && getUrlParam("translate").length > 0) {
-            defaultTranslate = getUrlParam("translate");
-
-            defaultTranslate = defaultTranslate.replace(/\\n/g, "\n");
-
-            $(".settingscontainer").hide();
-            $(".autobanner").show();
-        } else if (getUrlParam("out") != null) {
-            $(".settingscontainer").hide();
-            $(".autobanner").show();
-        }
-        if (defaultTranslate && defaultTranslate.trim().match(/^##[0-9]+$/gm) != null) submit_task(false);
-        else submit_task(true);
+  function renderAssetLibrary() {
+    const query = $("#asset-search").value.trim().toLocaleLowerCase();
+    const builtinGrid = $("#builtin-assets-grid");
+    builtinGrid.replaceChildren();
+    const visible = state.catalog.filter((item) => !item.hidden &&
+      (!query || [item.id, item.name, ...(item.tags || [])].join(" ").toLocaleLowerCase().includes(query)));
+    for (const item of visible) {
+      builtinGrid.append(createAssetCard({
+        choice: catalogChoice(item.id),
+        name: item.name,
+        subtitle: (item.tags || []).join(" · "),
+        image: `/templates/${item.logo}`
+      }));
     }
+    if (!visible.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty-assets";
+      empty.textContent = "没有匹配的内置模板。可以上传自己的 Logo。";
+      builtinGrid.append(empty);
+    }
+    $("#builtin-assets-count").textContent = `${visible.length} / ${state.catalog.filter((item) => !item.hidden).length}`;
 
+    const mine = state.userAssets.filter((item) => !query || item.name.toLocaleLowerCase().includes(query));
+    const mineSection = $("#my-assets-section");
+    mineSection.hidden = state.userAssets.length === 0;
+    const mineGrid = $("#my-assets-grid");
+    mineGrid.replaceChildren();
+    for (const asset of mine) {
+      mineGrid.append(createAssetCard({
+        choice: assetChoice(asset.id),
+        name: asset.name,
+        subtitle: asset.kind === "logo" ? `本地 Logo · ${Math.ceil(asset.blob.size / 1024)} KB` : "本地 HTML 模板",
+        image: customAssetImage(asset),
+        custom: true
+      }));
+    }
+    $("#my-assets-count").textContent = `${mine.length} 项`;
+  }
 
-});
+  async function removeUserAsset(choice) {
+    const asset = userAssetFromChoice(choice);
+    if (!asset || !window.confirm(`删除“${asset.name}”？只会清除这个浏览器里的副本。`)) return;
+    if (persistentStorageAvailable) {
+      try {
+        await deleteStoredAsset(asset.id);
+      } catch {
+        persistentStorageAvailable = false;
+        setStatus("浏览器没有完成本地删除；当前页面中已移除该素材。", "error");
+      }
+    }
+    if (asset.previewUrl) URL.revokeObjectURL(asset.previewUrl);
+    state.userAssets = state.userAssets.filter((item) => item.id !== asset.id);
+    if (state.activeAsset === choice) await applyAssetChoice(preferences.favorites[0] || "none");
+    refreshAssetSelect();
+    renderAssetLibrary();
+  }
 
-function downloadAsCanvas() {
-    $('body')[0].scrollIntoView();
-    dataLayer.push({"event": "downloadPNG", "tweetUrl": url});
-    performanceData.beforeH2C = new Date().getTime();
-    html2canvas(document.querySelector("#screenshots"), {useCORS: true}).then(canvas => {
-        performanceData.afterH2C = new Date().getTime();
-        //createAndDownloadFile("twitterImg" + new Date().getTime() + ".png", canvas.toDataURL("image/png"));
-        if (getUrlParam("out") == null) {
-            canvas.toBlob(function (blob) {
-                saveAs(blob, "twitterImg" + new Date().getTime() + ".png");
+  async function saveAdvancedTemplate() {
+    const html = $("#template-input").value;
+    if (!html.trim()) {
+      setStatus("请先输入模板 HTML。", "error");
+      return;
+    }
+    if (!html.includes("{T}")) {
+      setStatus("自定义模板必须包含 {T}，否则翻译文字无处显示。", "error");
+      return;
+    }
+    const current = userAssetFromChoice(state.activeAsset);
+    const name = $("#template-name").value.trim() || current?.name || `我的模板 ${state.userAssets.filter((item) => item.kind === "template").length + 1}`;
+    const asset = {
+      id: current?.kind === "template" ? current.id : `template-${crypto.randomUUID()}`,
+      kind: "template",
+      name,
+      html,
+      pinned: true,
+      updatedAt: Date.now()
+    };
+    const persisted = await persistAsset(asset);
+    replaceUserAsset(asset);
+    await applyAssetChoice(assetChoice(asset.id));
+    if (persisted) setStatus(`已把“${name}”保存在这个浏览器。`);
+  }
 
-            });
-        } else {
-            $("body>*").hide();
-            $("body").prepend(canvas);
-        }
+  async function storeUploadedLogo(file) {
+    if (!/^image\/(?:png|jpeg|webp)$/i.test(file.type)) {
+      throw new Error("自定义 Logo 仅支持 PNG、JPEG 或 WebP");
+    }
+    const name = file.name.replace(/\.[^.]+$/, "") || "我的 Logo";
+    const asset = {
+      id: `logo-${crypto.randomUUID()}`,
+      kind: "logo",
+      name,
+      blob: file,
+      pinned: true,
+      updatedAt: Date.now()
+    };
+    const persisted = await persistAsset(asset);
+    replaceUserAsset(asset);
+    await applyAssetChoice(assetChoice(asset.id));
+    renderAssetLibrary();
+    if (persisted) setStatus(`“${name}”已按原图保存在这个浏览器，不会上传到服务器素材库。`);
+  }
+
+  function persistDraftTemplate(html) {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => {
+      persistAsset({ id: DRAFT_ID, kind: "draft", html, updatedAt: Date.now() });
+    }, 250);
+  }
+
+  async function initializeAssetLibrary() {
+    const response = await fetch("/templates/catalog.json");
+    if (!response.ok) throw new Error("无法读取内置模板目录");
+    const catalog = await response.json();
+    state.catalog = catalog.templates || [];
+    let stored = [];
+    try {
+      stored = await getStoredAssets();
+    } catch {
+      persistentStorageAvailable = false;
+      setStatus("当前浏览器不允许持久化素材，自定义项只在本次打开期间可用。", "error");
+    }
+    const draft = stored.find((item) => item.id === DRAFT_ID);
+    state.userAssets = stored.filter((item) => item.kind === "logo" || item.kind === "template");
+    state.draftTemplate = draft?.html || "";
+    $("#template-input").value = state.draftTemplate;
+    $("#font-size-select").value = String(state.fontSize);
+    $("#show-counts").checked = state.showCounts;
+    const firstAvailableFavorite = preferences.favorites.find((choice) => activeChoiceExists(choice));
+    const initial = activeChoiceExists(preferences.activeAsset) ? preferences.activeAsset : firstAvailableFavorite || "none";
+    await applyAssetChoice(initial, { persist: false });
+  }
+
+  function appendLinkedText(container, text) {
+    const pattern = /(https?:\/\/[^\s]+|@[\p{L}\p{N}_]+|#[^\s#]+)/gu;
+    let cursor = 0;
+    for (const match of text.matchAll(pattern)) {
+      container.append(document.createTextNode(text.slice(cursor, match.index)));
+      const link = document.createElement("a");
+      link.textContent = match[0];
+      link.rel = "noreferrer";
+      container.append(link);
+      cursor = match.index + match[0].length;
+    }
+    container.append(document.createTextNode(text.slice(cursor)));
+  }
+
+  function authorNode(author, compact = false) {
+    const wrapper = document.createElement("div");
+    wrapper.className = compact ? "quote-author" : "tweet-header";
+    const avatar = document.createElement("img");
+    avatar.src = author.avatarUrl
+      ? proxyUrl(author.avatarUrl)
+      : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%23e9edf0'/%3E%3C/svg%3E";
+    avatar.alt = "";
+    avatar.crossOrigin = "anonymous";
+    if (compact) {
+      wrapper.append(avatar);
+      const name = document.createElement("strong");
+      name.textContent = author.name;
+      const handle = document.createElement("span");
+      handle.textContent = `@${author.screenName}`;
+      wrapper.append(name, handle);
+      return wrapper;
+    }
+    avatar.className = "tweet-avatar";
+    const identity = document.createElement("div");
+    identity.className = "tweet-author";
+    const name = document.createElement("div");
+    name.className = "tweet-name";
+    const nameText = document.createElement("span");
+    nameText.textContent = author.name;
+    name.append(nameText);
+    if (author.verified) {
+      const verified = document.createElement("span");
+      verified.className = "verified";
+      verified.textContent = "✓";
+      verified.setAttribute("aria-label", "已认证");
+      name.append(verified);
+    }
+    const handle = document.createElement("div");
+    handle.className = "tweet-handle";
+    handle.textContent = `@${author.screenName}`;
+    identity.append(name, handle);
+    const x = document.createElement("span");
+    x.className = "x-mark";
+    x.textContent = "𝕏";
+    wrapper.append(avatar, identity, x);
+    return wrapper;
+  }
+
+  function formatCount(value) {
+    const number = Number(value || 0);
+    return new Intl.NumberFormat("zh-CN", { notation: number >= 10000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(number);
+  }
+
+  function mediaNode(items) {
+    if (!items?.length) return null;
+    const grid = document.createElement("div");
+    grid.className = `media-grid count-${items.length}`;
+    items.forEach((item) => {
+      const frame = document.createElement("div");
+      frame.className = "media-item";
+      const image = document.createElement("img");
+      image.src = proxyUrl(item.url);
+      image.alt = item.alt || "推文媒体";
+      image.crossOrigin = "anonymous";
+      frame.append(image);
+      if (item.type === "video" || item.type === "gif") {
+        const badge = document.createElement("span");
+        badge.className = "video-badge";
+        badge.textContent = "▶";
+        frame.append(badge);
+      }
+      grid.append(frame);
     });
-}
+    return grid;
+  }
+
+  function quoteNode(quote) {
+    if (!quote) return null;
+    const card = document.createElement("div");
+    card.className = "quote-card";
+    card.append(authorNode(quote.author, true));
+    const text = document.createElement("div");
+    text.className = "quote-text";
+    appendLinkedText(text, quote.text || "");
+    card.append(text);
+    const media = mediaNode((quote.media || []).slice(0, 1));
+    if (media) card.append(media);
+    return card;
+  }
+
+  function tweetNode(tweet) {
+    const card = document.createElement("article");
+    card.className = "tweet-card";
+    card.dataset.tweetId = tweet.id;
+    card.append(authorNode(tweet.author));
+    if (tweet.replyingTo) {
+      const replying = document.createElement("div");
+      replying.className = "replying";
+      replying.append("回复 ");
+      const who = document.createElement("span");
+      who.textContent = `@${tweet.replyingTo}`;
+      replying.append(who);
+      card.append(replying);
+    }
+    const text = document.createElement("div");
+    text.className = "tweet-text";
+    appendLinkedText(text, tweet.text || "");
+    card.append(text);
+    const media = mediaNode(tweet.media);
+    if (media) card.append(media);
+    const quote = quoteNode(tweet.quote);
+    if (quote) card.append(quote);
+    const meta = document.createElement("div");
+    meta.className = "tweet-meta";
+    const date = tweet.createdAt ? new Date(tweet.createdAt) : null;
+    meta.textContent = date && !Number.isNaN(date.valueOf())
+      ? new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date)
+      : "";
+    card.append(meta);
+    if (state.showCounts) {
+      const counts = document.createElement("div");
+      counts.className = "tweet-counts";
+      counts.innerHTML = `<span>${formatCount(tweet.counts.replies)} 回复</span><span>${formatCount(tweet.counts.reposts)} 转发</span><span>${formatCount(tweet.counts.likes)} 喜欢</span>`;
+      card.append(counts);
+    }
+    return card;
+  }
+
+  function safeTemplateHtml(template, translation) {
+    const escaped = document.createElement("div");
+    escaped.textContent = translation;
+    const translationHtml = escaped.innerHTML.replace(/\n/g, "<br>");
+    const parsed = document.createElement("template");
+    parsed.innerHTML = template.replaceAll("{T}", translationHtml);
+    const allowedTags = new Set(["DIV", "SPAN", "P", "BR", "IMG", "STRONG", "EM", "B", "I", "SMALL", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "TABLE", "THEAD", "TBODY", "TR", "TD", "TH"]);
+    const blockedTags = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "LINK", "META", "FORM", "INPUT", "BUTTON", "VIDEO", "AUDIO"]);
+    parsed.content.querySelectorAll("*").forEach((node) => {
+      if (blockedTags.has(node.tagName)) node.remove();
+      else if (!allowedTags.has(node.tagName)) node.replaceWith(...node.childNodes);
+    });
+    parsed.content.querySelectorAll("*").forEach((node) => {
+      [...node.attributes].forEach((attribute) => {
+        const name = attribute.name.toLowerCase();
+        const value = attribute.value.trim();
+        const allowed = name === "class" || name === "style" || name === "title" || name === "alt" ||
+          name === "width" || name === "height" || (node.tagName === "IMG" && name === "src");
+        if (!allowed) node.removeAttribute(attribute.name);
+        if (name === "style" && /(url\s*\(|expression\s*\(|@import|javascript:)/i.test(value)) node.removeAttribute(attribute.name);
+        if (name === "src" && !/^(?:data:image\/|img\/|\/?templates?\/|\/api\/media)/i.test(value)) node.removeAttribute(attribute.name);
+      });
+    });
+    return parsed.content;
+  }
+
+  function templateVariants(template) {
+    const markers = [...template.matchAll(/<!--([\s\S]*?)-->/g)];
+    const variants = [];
+    for (let index = 0; index + 1 < markers.length; index += 2) {
+      if (markers[index][1].trim() !== markers[index + 1][1].trim()) return [template];
+      const start = markers[index].index + markers[index][0].length;
+      variants.push(template.slice(start, markers[index + 1].index));
+    }
+    return variants.length ? variants : [template];
+  }
+
+  function logoSource() {
+    if (state.logo === "custom") return state.customLogo;
+    return LOGOS[state.logo] || "";
+  }
+
+  function translationNode(text, index) {
+    const block = document.createElement("section");
+    block.className = "translation-block";
+    if (state.template.trim()) {
+      const variants = templateVariants(state.template);
+      const variantIndex = state.botMode && index !== state.focalIndex && variants[1] ? 1 : 0;
+      block.append(safeTemplateHtml(variants[variantIndex], text));
+      return block;
+    }
+    const logo = logoSource();
+    if (logo) {
+      const image = document.createElement("img");
+      image.className = "translation-logo";
+      image.src = logo;
+      image.alt = "翻译组 Logo";
+      block.append(image);
+    }
+    const translation = document.createElement("div");
+    translation.className = "translation-text";
+    translation.style.fontSize = `${state.fontSize}px`;
+    appendLinkedText(translation, text);
+    block.append(translation);
+    return block;
+  }
+
+  function renderPreview() {
+    if (!state.data) return;
+    const capture = $("#capture");
+    capture.replaceChildren();
+    const stack = document.createElement("div");
+    stack.className = "tweet-stack";
+    state.data.tweets.forEach((tweet, index) => {
+      if (!state.included[index]) return;
+      stack.append(tweetNode(tweet));
+      const translation = state.translations[index]?.trim();
+      if (translation) stack.append(translationNode(translation, index));
+    });
+    capture.append(stack);
+    $("#preview-hint").textContent = `${state.included.filter(Boolean).length} 条推文 · 640px`;
+  }
+
+  function buildEditor() {
+    const list = $("#translation-list");
+    list.replaceChildren();
+    state.data.tweets.forEach((tweet, index) => {
+      const item = document.createElement("div");
+      item.className = `translation-item${state.included[index] ? "" : " disabled"}`;
+      const header = document.createElement("div");
+      header.className = "translation-item-header";
+      const include = document.createElement("input");
+      include.type = "checkbox";
+      include.checked = state.included[index];
+      include.setAttribute("aria-label", `包含 @${tweet.author.screenName} 的第 ${index + 1} 条推文`);
+      const originalWrap = document.createElement("div");
+      originalWrap.className = "original-wrap";
+      const originalMeta = document.createElement("div");
+      originalMeta.className = "original-meta";
+      originalMeta.textContent = `${tweet.author.name} · @${tweet.author.screenName}`;
+      const original = document.createElement("div");
+      original.className = "original";
+      original.textContent = tweet.text;
+      originalWrap.append(originalMeta, original);
+      const label = document.createElement("span");
+      label.className = `relation-label ${tweet.relation || "context"}`;
+      if (state.data.mode === "timeline" && index === 0) label.textContent = "最新";
+      else label.textContent = ({ target: "目标", reply: "回复", timeline: "主页", context: "上下文" })[tweet.relation] || "上下文";
+      header.append(include, originalWrap, label);
+      const textarea = document.createElement("textarea");
+      textarea.placeholder = "输入中文翻译（留空则只显示原文）";
+      textarea.value = state.translations[index] || "";
+      textarea.dataset.index = index;
+      include.addEventListener("change", () => {
+        state.included[index] = include.checked;
+        item.classList.toggle("disabled", !include.checked);
+        renderPreview();
+      });
+      textarea.addEventListener("input", () => {
+        state.translations[index] = textarea.value;
+        renderPreview();
+      });
+      item.append(header, textarea);
+      list.append(item);
+    });
+  }
+
+  function recommendedSelection(data) {
+    if (data.mode === "timeline") return data.tweets.map((_, index) => index < Math.min(3, data.tweets.length));
+    return data.tweets.map((tweet, index) => tweet.focal || index === data.focalIndex);
+  }
+
+  function setSelection(mode) {
+    if (!state.data) return;
+    if (mode === "all") state.included = state.data.tweets.map(() => true);
+    else if (mode === "none") state.included = state.data.tweets.map(() => false);
+    else state.included = recommendedSelection(state.data);
+    buildEditor();
+    renderPreview();
+  }
+
+  function loadData(data) {
+    state.data = data;
+    state.botMode = false;
+    state.focalIndex = data.focalIndex;
+    state.translations = data.tweets.map(() => "");
+    state.included = recommendedSelection(data);
+    buildEditor();
+    renderPreview();
+    const replyCount = data.tweets.filter((tweet) => tweet.relation === "reply").length;
+    $("#tweet-count").textContent = replyCount ? `${data.tweets.length} 条 · ${replyCount} 回复` : `${data.tweets.length} 条`;
+    $("#recommended-selection").textContent = data.mode === "timeline" ? "前 3 条" : "仅目标";
+    $("#translation-panel").hidden = false;
+    $("#style-panel").hidden = false;
+    $("#action-bar").hidden = false;
+  }
+
+  async function queryTweet(url) {
+    const button = $("#query-button");
+    button.disabled = true;
+    button.textContent = "读取中…";
+    setStatus("正在读取公开主页、上下文和回复，这通常只需要几秒钟。");
+    try {
+      const response = await fetch("/api/tweet", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error?.message || "读取失败");
+      loadData(payload);
+      setStatus("");
+    } catch (error) {
+      setStatus(error.message || "无法读取这个主页或推文", "error");
+    } finally {
+      button.disabled = false;
+      button.textContent = "查询";
+    }
+  }
+
+  async function waitForImages(root) {
+    const images = [...root.querySelectorAll("img")];
+    await Promise.all(images.map((image) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        image.addEventListener("load", resolve, { once: true });
+        image.addEventListener("error", resolve, { once: true });
+        setTimeout(resolve, 10000);
+      });
+    }));
+    if (document.fonts?.ready) await document.fonts.ready;
+  }
+
+  function delay(milliseconds) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  }
+
+  async function waitForTask(taskId) {
+    for (let attempt = 0; attempt < 240; attempt += 1) {
+      const response = await fetch(`/api/get_task=${encodeURIComponent(taskId)}`, { cache: "no-store" });
+      const task = await response.json();
+      if (!response.ok) throw new Error(task?.error?.message || "无法查询出图任务");
+      if (task.state === "SUCCESS") return task.result;
+      if (task.state === "FAILURE") throw new Error(task.error || "服务端生成图片失败");
+      await delay(250);
+    }
+    throw new Error("图片生成超时，请稍后重试");
+  }
+
+  async function downloadPng() {
+    const button = $("#download-button");
+    const selection = state.data.tweets.flatMap((tweet, index) => state.included[index]
+      ? [{ id: tweet.id, translation: state.translations[index] || "" }]
+      : []);
+    if (!selection.length) {
+      setStatus("请先勾选至少一条要出图的推文。", "error");
+      return;
+    }
+    button.disabled = true;
+    button.textContent = "正在生成…";
+    try {
+      setStatus("服务端正在用与预览相同的 Chromium 页面生成 2x PNG…");
+      const created = await fetch("/api/render", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          tweet: state.data.query?.canonicalUrl || state.data.canonicalUrl,
+          selection,
+          template: state.template,
+          noLikes: !state.showCounts,
+          logo: state.logo,
+          customLogo: state.logo === "custom" ? state.customLogo : "",
+          fontSize: state.fontSize
+        })
+      });
+      const payload = await created.json();
+      if (!created.ok) throw new Error(payload?.error?.message || "无法创建出图任务");
+      const filename = await waitForTask(payload.task_id);
+      const imageResponse = await fetch(`/cache/${encodeURIComponent(filename)}.png`, { cache: "no-store" });
+      if (!imageResponse.ok) throw new Error("生成的图片暂时无法下载");
+      const blob = await imageResponse.blob();
+      const source = state.data.query?.screenName || state.data.id;
+      window.saveAs(blob, `TweetToaster-${source}-${state.data.id}.png`);
+      setStatus("");
+    } catch (error) {
+      setStatus(`图片生成失败：${error.message}`, "error");
+    } finally {
+      button.disabled = false;
+      button.textContent = "下载 PNG";
+    }
+  }
+
+  function parseBotTranslations(value, focalIndex, length) {
+    const translations = Array.from({ length }, () => "");
+    const text = String(value || "");
+    const markers = [...text.matchAll(/^##(\d+)\s*$/gm)];
+    if (!markers.length) {
+      translations[focalIndex] = text;
+      return translations;
+    }
+    markers.forEach((marker, index) => {
+      const target = Number(marker[1]) - 1;
+      const start = marker.index + marker[0].length;
+      const end = markers[index + 1]?.index ?? text.length;
+      if (target >= 0 && target < length) translations[target] = text.slice(start, end).replace(/^\s*\n/, "").trimEnd();
+    });
+    return translations;
+  }
+
+  async function renderForBot(payload) {
+    window.__tweetToasterReady = false;
+    document.body.classList.add("render-mode");
+    state.data = payload.data;
+    // Browser downloads send an explicit selection and must match the editor preview.
+    // Only the legacy Bot translation string keeps the old per-reply variant behavior.
+    state.botMode = !Array.isArray(payload.selection);
+    state.focalIndex = payload.data.focalIndex;
+    state.logo = payload.logo || "official";
+    state.customLogo = payload.customLogo || "";
+    state.fontSize = Number(payload.fontSize) || 26;
+    state.showCounts = !payload.noLikes;
+    state.template = payload.template || "";
+    if (Array.isArray(payload.selection)) {
+      const selected = new Map(payload.selection.map((item) => [String(item.id), String(item.translation || "")]));
+      state.translations = payload.data.tweets.map((tweet) => selected.get(tweet.id) || "");
+      state.included = payload.data.tweets.map((tweet) => selected.has(tweet.id));
+      if (!state.included.some(Boolean)) throw new Error("选中的推文已不在当前公开数据中，请重新查询");
+    } else {
+      state.translations = parseBotTranslations(payload.translate, payload.data.focalIndex, payload.data.tweets.length);
+      state.included = payload.data.tweets.map((tweet, index) => tweet.focal || index <= payload.data.focalIndex);
+    }
+    if (/^https:\/\//.test(state.template)) state.template = "";
+    renderPreview();
+    await waitForImages($("#capture"));
+    window.__tweetToasterReady = true;
+    return true;
+  }
+
+  function reset() {
+    state.data = null;
+    state.translations = [];
+    state.included = [];
+    $("#capture").innerHTML = `<div class="empty-preview"><div class="skeleton profile-skeleton"></div><div class="skeleton line line-wide"></div><div class="skeleton line line-medium"></div><div class="skeleton media-skeleton"></div><div class="skeleton line line-short"></div><p>一张可以直接发布的烤推图，会出现在这里。</p></div>`;
+    $("#translation-panel").hidden = true;
+    $("#action-bar").hidden = true;
+    $("#tweet-url").focus();
+    setStatus("");
+  }
+
+  async function loadTemplateParam(value) {
+    try {
+      const response = await fetch(value);
+      if (!response.ok) throw new Error(`模板读取失败 (${response.status})`);
+      const template = await response.text();
+      if (new Blob([template]).size > 64 * 1024) throw new Error("模板文件过大");
+      state.template = template;
+      state.draftTemplate = template;
+      state.activeAsset = "draft";
+      state.logo = "none";
+      $("#template-input").value = template;
+      preferences.activeAsset = "draft";
+      writePreferences();
+      persistDraftTemplate(template);
+      refreshAssetSelect();
+      return true;
+    } catch (error) {
+      setStatus(error.message || "无法读取模板", "error");
+      return false;
+    }
+  }
+
+  function bind() {
+    $("#tweet-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      queryTweet($("#tweet-url").value);
+    });
+    $("#logo-select").addEventListener("change", async (event) => {
+      if (event.target.value === "manage") {
+        refreshAssetSelect();
+        renderAssetLibrary();
+        $("#asset-library").showModal();
+        return;
+      }
+      try {
+        await applyAssetChoice(event.target.value);
+      } catch (error) {
+        setStatus(error.message || "无法读取这个模板", "error");
+      }
+    });
+    $("#custom-logo").addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        await storeUploadedLogo(file);
+      } catch (error) {
+        setStatus(error.message || "无法保存自定义 Logo", "error");
+      } finally {
+        event.target.value = "";
+      }
+    });
+    $("#font-size-select").addEventListener("change", (event) => {
+      state.fontSize = Number(event.target.value);
+      preferences.fontSize = state.fontSize;
+      writePreferences();
+      renderPreview();
+    });
+    $("#show-counts").addEventListener("change", (event) => {
+      state.showCounts = event.target.checked;
+      preferences.showCounts = state.showCounts;
+      writePreferences();
+      renderPreview();
+    });
+    $("#template-input").addEventListener("input", (event) => {
+      state.template = event.target.value;
+      state.draftTemplate = event.target.value;
+      state.logo = "none";
+      if (state.activeAsset !== "draft") {
+        state.activeAsset = "draft";
+        preferences.activeAsset = "draft";
+        writePreferences();
+        refreshAssetSelect();
+      }
+      persistDraftTemplate(event.target.value);
+      renderPreview();
+    });
+    $("#save-template").addEventListener("click", () => saveAdvancedTemplate().catch((error) => setStatus(error.message, "error")));
+    $("#clear-template").addEventListener("click", () => {
+      applyAssetChoice(preferences.favorites.find((choice) => catalogItemFromChoice(choice)) || "none")
+        .catch((error) => setStatus(error.message, "error"));
+    });
+    $("#manage-assets").addEventListener("click", () => {
+      $("#asset-search").value = "";
+      renderAssetLibrary();
+      $("#asset-library").showModal();
+    });
+    $("#close-library").addEventListener("click", () => $("#asset-library").close());
+    $("#asset-search").addEventListener("input", renderAssetLibrary);
+    $("#upload-logo").addEventListener("click", () => $("#custom-logo").click());
+    $("#select-all").addEventListener("click", () => setSelection("all"));
+    $("#recommended-selection").addEventListener("click", () => setSelection("recommended"));
+    $("#select-none").addEventListener("click", () => setSelection("none"));
+    $("#download-button").addEventListener("click", downloadPng);
+    $("#reset-button").addEventListener("click", reset);
+    $("#show-settings").addEventListener("click", () => $("#settings-pane").classList.add("open"));
+    $("#hide-settings").addEventListener("click", () => $("#settings-pane").classList.remove("open"));
+  }
+
+  window.TweetToaster = { renderForBot, loadData };
+  document.addEventListener("DOMContentLoaded", async () => {
+    bind();
+    const params = new URLSearchParams(location.search);
+    if (params.get("render") === "1") {
+      document.body.classList.add("render-mode");
+      return;
+    }
+    try {
+      await initializeAssetLibrary();
+    } catch (error) {
+      state.logo = "official";
+      state.activeAsset = "none";
+      refreshAssetSelect();
+      setStatus(error.message || "模板库暂时不可用，仍可继续查询和出图。", "error");
+    }
+    if (params.get("template")) await loadTemplateParam(params.get("template"));
+    if (params.get("tweet")) {
+      $("#tweet-url").value = params.get("tweet");
+      queryTweet(params.get("tweet"));
+    }
+  });
+})();

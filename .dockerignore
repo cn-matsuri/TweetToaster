@@ -1,0 +1,11 @@
+.git
+.gitignore
+node_modules
+Matsuri_translation/frontend/cache
+test
+coverage
+test-results
+*.log
+.DS_Store
+testimonial.png
+tt_how_to_use.gif
