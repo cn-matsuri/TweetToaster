@@ -8,6 +8,7 @@
     included: [],
     logo: "official",
     fontSize: 26,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     showCounts: true,
     template: "",
     botMode: false,
@@ -572,7 +573,7 @@
     meta.className = "tweet-meta";
     const date = tweet.createdAt ? new Date(tweet.createdAt) : null;
     meta.textContent = date && !Number.isNaN(date.valueOf())
-      ? new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date)
+      ? new Intl.DateTimeFormat("zh-CN", { timeZone: state.timeZone, year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date)
       : "";
     card.append(meta);
     if (state.showCounts) {
@@ -816,7 +817,8 @@
           noLikes: !state.showCounts,
           logo: state.logo,
           customLogo: state.logo === "custom" ? state.customLogo : "",
-          fontSize: state.fontSize
+          fontSize: state.fontSize,
+          timeZone: state.timeZone
         })
       });
       const payload = await created.json();
@@ -864,6 +866,8 @@
     state.logo = payload.logo || "official";
     state.customLogo = payload.customLogo || "";
     state.fontSize = Number(payload.fontSize) || 26;
+    // Preserve the editor's timezone; legacy Bot requests keep the server default.
+    state.timeZone = payload.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     state.showCounts = !payload.noLikes;
     state.template = payload.template || "";
     if (Array.isArray(payload.selection)) {

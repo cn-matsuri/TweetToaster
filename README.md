@@ -27,6 +27,7 @@
 - 常用模板、最近选择、自定义 Logo、高级 HTML 草稿和命名模板均保存在浏览器本地，刷新后继续使用
 - Logo 按素材原始 CSS 像素等比显示，仅在超过 568px 出图内容区时防溢出，不再统一压小
 - 预览和下载共用 Chromium 渲染面；导出为 640 CSS px / 1280 实际像素的 2x PNG
+- 下载图片中的推文时间沿用预览的浏览器时区，包括跨日与夏令时；不受服务器时区影响
 - 兼容旧 Bot 的 `/api/auto` + `/api/get_task=<id>` 异步协议
 - 默认使用免费公开的 FxTwitter/FxEmbed API，可切换到自建实例
 
@@ -100,6 +101,8 @@ Content-Type: application/json
 ```
 
 `tweet` 现在也可以传主页或用户名。`template` 可留空、直接传模板 HTML、传 `/template/name.txt` 本地路径，或传白名单内的 HTTPS 模板地址。远程模板限制为 64 KB，并拒绝内网地址。
+
+Bot 可选传入 `timeZone`（例如 `Asia/Shanghai`、`Asia/Tokyo`、`America/New_York`）指定图片中的时区；省略时保留旧版的服务器默认时区。网页下载会自动传入预览所用的浏览器时区。无效时区返回 `400 INVALID_TIME_ZONE`。
 
 经过整理的 [toastTemplates](https://github.com/cn-matsuri/toastTemplates) 已随程序和预构建镜像发布，无需在服务器再 clone。`/template/*.txt`、`/templates/*.txt`、`?template=/template/*.txt` 和旧模板的多样式注释格式继续兼容。维护者可以在相邻源码目录运行 `pnpm templates:sync` 重新导入上游目录；生成的 `frontend/templates/` 不包含废弃的 25 MB 远程字体。
 

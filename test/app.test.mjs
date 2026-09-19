@@ -49,6 +49,7 @@ test("legacy bot contract creates and polls a render job", () => withServer(asyn
   assert.equal(job.result, "rendered-file");
   assert.equal(calls[1].translate, "开始啦！");
   assert.equal(calls[1].noLikes, true);
+  assert.equal(calls[1].timeZone, undefined, "old Bot clients need not send a timezone");
 }));
 
 test("browser render contract preserves exact selection and custom render settings", () => withServer(async ({ origin, calls }) => {
@@ -60,7 +61,8 @@ test("browser render contract preserves exact selection and custom render settin
       template: "",
       noLikes: false,
       logo: "none",
-      fontSize: 30
+      fontSize: 30,
+      timeZone: "Asia/Shanghai"
     })
   });
   assert.equal(created.status, 200);
@@ -74,6 +76,25 @@ test("browser render contract preserves exact selection and custom render settin
   assert.equal(job.state, "SUCCESS");
   assert.deepEqual(calls[1].selection, [{ id: "1383771374183878658", translation: "精确翻译" }]);
   assert.equal(calls[1].fontSize, 30);
+  assert.equal(calls[1].timeZone, "Asia/Shanghai");
+}));
+
+test("render and legacy Bot APIs reject invalid timezones before fetching tweets", () => withServer(async ({ origin, calls }) => {
+  for (const endpoint of ["/api/render", "/api/auto"]) {
+    for (const timeZone of ["Mars/Olympus", 8, {}, "x".repeat(101)]) {
+      const response = await fetch(`${origin}${endpoint}`, {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          tweet: "minatoaqua",
+          selection: [{ id: "1383771374183878658", translation: "翻译" }],
+          timeZone
+        })
+      });
+      assert.equal(response.status, 400);
+      assert.equal((await response.json()).error.code, "INVALID_TIME_ZONE");
+    }
+  }
+  assert.equal(calls.length, 0);
 }));
 
 test("browser render contract rejects empty selections and unsafe custom logos", () => withServer(async ({ origin }) => {

@@ -144,8 +144,21 @@ function validateAutoEvent(event) {
     logo: typeof event.logo === "string" ? event.logo : "official",
     customLogo: typeof event.customLogo === "string" ? event.customLogo : "",
     fontSize: Number(event.fontSize) || 26,
+    timeZone: validateTimeZone(event.timeZone),
     selection: validateSelection(event.selection, { optional: true })
   };
+}
+
+function validateTimeZone(value) {
+  if (value == null || value === "") return undefined;
+  if (typeof value === "string" && value.length <= 100) {
+    try {
+      return new Intl.DateTimeFormat("en", { timeZone: value }).resolvedOptions().timeZone;
+    } catch {
+      // Reject unsupported zones before queuing an expensive render job.
+    }
+  }
+  throw new TweetProviderError("时区无效，请刷新页面后重试", { status: 400, code: "INVALID_TIME_ZONE" });
 }
 
 function validateSelection(value, { optional = false } = {}) {
