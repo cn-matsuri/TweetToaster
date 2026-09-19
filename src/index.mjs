@@ -19,7 +19,7 @@ const server = createTweetToasterServer({
   provider,
   jobs,
   publicDir,
-  renderBot: (payload) => renderer.render(payload)
+  renderBot: (payload, options) => renderer.render(payload, options)
 });
 
 server.listen(port, host, () => {
@@ -28,10 +28,16 @@ server.listen(port, host, () => {
   console.log(`TweetToaster listening on http://${host}:${port}`);
 });
 
+let shuttingDown = false;
 async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
   console.log(`Received ${signal}, shutting down`);
   server.close();
-  await renderer?.close();
+  // Disconnect direct HTTP work as well as aborting queued jobs. Wait for the
+  // renderer to reap its owned Chromium process before the parent exits.
+  server.closeAllConnections();
+  await Promise.all([jobs.close(), renderer?.close()]);
   process.exit(0);
 }
 

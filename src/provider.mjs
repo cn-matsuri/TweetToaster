@@ -1,4 +1,5 @@
 import { BlockList, isIP } from "node:net";
+import { cancelResponseBody, readLimitedBody, requestScope } from "./request.mjs";
 
 const PRIVATE_ADDRESSES = new BlockList();
 for (const [network, prefix] of [
@@ -247,9 +248,8 @@ export class FxTwitterProvider {
     this.replyCount = boundedInteger(replyCount, 20, 0, 30);
   }
 
-  async #request(pathname) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+  async #request(pathname, { signal } = {}) {
+    const scope = requestScope({ signal, timeoutMs: this.timeoutMs, timeoutMessage: "公开推文数据源响应超时" });
     let response;
     try {
       response = await this.fetchImpl(`${this.baseUrl}${pathname}`, {
@@ -257,46 +257,58 @@ export class FxTwitterProvider {
           accept: "application/json",
           "user-agent": "TweetToaster/2.0 (+https://github.com/cn-matsuri/TweetToaster)"
         },
-        signal: controller.signal
+        signal: scope.signal
       });
+      scope.signal.throwIfAborted();
+      if (response.status === 204) return { code: 204, results: [] };
+      const bytes = await readLimitedBody(response, 4 * 1024 * 1024, { signal: scope.signal });
+      let payload;
+      try {
+        payload = JSON.parse(bytes.toString("utf8"));
+      } catch {
+        throw new TweetProviderError("公开推文数据源返回了无效响应", { status: 502 });
+      }
+      if (!response.ok && payload?.code !== 200) {
+        throw new TweetProviderError(payload?.message || `公开推文数据源错误 (${response.status})`, {
+          status: response.status === 404 ? 404 : 502
+        });
+      }
+      return payload;
     } catch (error) {
-      const message = error?.name === "AbortError" ? "公开推文数据源响应超时" : "无法连接公开推文数据源";
+      const timedOut = scope.signal.aborted;
+      scope.abort(error);
+      // A cancelled job must not be mistaken for a provider failure and retried.
+      signal?.throwIfAborted();
+      if (error instanceof TweetProviderError) throw error;
+      const message = timedOut ? "公开推文数据源响应超时"
+        : error?.code === "REMOTE_BODY_TOO_LARGE" ? "公开推文数据源返回的内容过大"
+          : "无法连接公开推文数据源";
       throw new TweetProviderError(message, { status: 503, code: "PROVIDER_UNAVAILABLE" });
     } finally {
-      clearTimeout(timer);
+      await cancelResponseBody(response);
+      scope.dispose();
     }
-
-    if (response.status === 204) return { code: 204, results: [] };
-    let payload;
-    try {
-      payload = await response.json();
-    } catch {
-      throw new TweetProviderError("公开推文数据源返回了无效响应", { status: 502 });
-    }
-    if (!response.ok && payload?.code !== 200) {
-      throw new TweetProviderError(payload?.message || `公开推文数据源错误 (${response.status})`, {
-        status: response.status === 404 ? 404 : 502
-      });
-    }
-    return payload;
   }
 
-  async fetchTweet(input) {
+  async fetchTweet(input, { signal } = {}) {
+    signal?.throwIfAborted();
     const parsed = parseTweetInput(input);
     if (parsed.kind === "profile") {
       const query = new URLSearchParams({ count: String(this.timelineCount) });
-      const payload = await this.#request(`/profile/${encodeURIComponent(parsed.screenName)}/statuses?${query}`);
+      const payload = await this.#request(`/profile/${encodeURIComponent(parsed.screenName)}/statuses?${query}`, { signal });
       return normalizeTimelineResponse(payload, parsed, { maxStatuses: this.timelineCount });
     }
 
     try {
-      const payload = await this.#request(`/conversation/${parsed.id}?ranking_mode=likes`);
+      const payload = await this.#request(`/conversation/${parsed.id}?ranking_mode=likes`, { signal });
       return normalizeConversationResponse(payload, parsed, { maxReplies: this.replyCount });
     } catch (conversationError) {
+      signal?.throwIfAborted();
       try {
-        const payload = await this.#request(`/status/${parsed.id}`);
+        const payload = await this.#request(`/status/${parsed.id}`, { signal });
         return normalizeProviderResponse(payload, parsed);
       } catch (statusError) {
+        signal?.throwIfAborted();
         statusError.cause = conversationError;
         throw statusError;
       }
