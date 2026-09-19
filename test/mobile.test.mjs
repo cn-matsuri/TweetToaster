@@ -57,6 +57,23 @@ test("mobile homepage, editing and real PNG export remain usable across viewport
     provider: {
       fetchTweet: async (input) => {
         if (input === "failure") throw Object.assign(new Error("测试数据源暂时不可用，请重试"), { status: 400 });
+        if (input === "long-conversation") {
+          const conversation = structuredClone(data);
+          const reply = conversation.tweets[1];
+          conversation.tweets = [conversation.tweets[0], ...Array.from({ length: 25 }, (_, index) => ({
+            ...structuredClone(reply),
+            id: String(BigInt(reply.id) + BigInt(index)),
+            text: index % 3 === 0
+              ? `https://example.com/${"UnbrokenPublicLinkSegment".repeat(8)}\n第 ${index + 1} 条回复。`
+              : `第 ${index + 1} 条公开回复。\n这里保留完整上下文，用户应当能翻译任何一条回复。\n长列表不应该阻挡底部的预览和下载按钮。`,
+            author: {
+              ...reply.author,
+              screenName: `fan_account_${String(index + 1).padStart(2, "0")}`,
+              name: index % 2 === 0 ? "LongUnbrokenFanDisplayNameWithoutAnySpaces" : "星読み☄️フブみこめっとさんを一生推していきます🫶"
+            }
+          }))];
+          return conversation;
+        }
         if (input === "delayed") {
           await new Promise((resolve) => {
             releasePendingQuery = resolve;
@@ -81,8 +98,8 @@ test("mobile homepage, editing and real PNG export remain usable across viewport
   renderer = new BotRenderer({ origin, cacheDir, executablePath: chromePath });
   const browser = await chromium.launch({ headless: true, executablePath: chromePath });
   const pageErrors = [];
-  const newPage = async (width = 400) => {
-    const page = await browser.newPage({ viewport: { width, height: 662 }, timezoneId: "Asia/Shanghai", isMobile: true, hasTouch: true });
+  const newPage = async (width = 400, height = 662) => {
+    const page = await browser.newPage({ viewport: { width, height }, timezoneId: "Asia/Shanghai", isMobile: true, hasTouch: true });
     page.setDefaultTimeout(10000);
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.goto(origin, { waitUntil: "networkidle" });
@@ -121,6 +138,58 @@ test("mobile homepage, editing and real PNG export remain usable across viewport
           await page.locator("#close-library").click();
           assert.equal(await page.locator("#asset-library").isVisible(), false);
           await assertNoHorizontalOverflow(page);
+        } finally {
+          await page.close();
+        }
+      });
+    }
+
+    for (const width of [320, 400]) {
+      await t.test(`fixed actions remain clickable after scrolling through many replies at ${width}px`, async () => {
+        const page = await newPage(width, 780);
+        try {
+          await page.locator("#tweet-url").fill("long-conversation");
+          await page.locator("#query-button").click();
+          await page.locator("#translation-panel").waitFor({ state: "visible" });
+          assert.equal(await page.locator(".translation-item").count(), 26);
+          await assertNoHorizontalOverflow(page);
+          const viewport = await page.evaluate(() => ({
+            layoutWidth: innerWidth,
+            layoutHeight: innerHeight,
+            visualWidth: visualViewport.width,
+            visualHeight: visualViewport.height
+          }));
+          assert.deepEqual(viewport, { layoutWidth: width, layoutHeight: 780, visualWidth: width, visualHeight: 780 }, "long content must not auto-expand the mobile layout viewport");
+          await page.getByPlaceholder("输入中文翻译（留空则只显示原文）").first().fill("长回复列表中的目标推文翻译。");
+          await page.locator("#font-size-select").scrollIntoViewIfNeeded();
+          await page.locator("#font-size-select").selectOption("30");
+          assert.ok(await page.evaluate(() => window.scrollY > 2000), "the appearance controls must be reached through the long editor");
+          await assertNoHorizontalOverflow(page);
+          try {
+            // A real, unforced pointer action must hit the fixed footer, not a reply behind it.
+            await page.locator("#show-preview-button").click();
+          } catch (error) {
+            const geometry = await page.locator("#show-preview-button").evaluate((button) => {
+              const bounds = button.getBoundingClientRect();
+              const hit = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+              return {
+                scrollY: window.scrollY,
+                innerHeight: window.innerHeight,
+                visualViewport: { height: visualViewport.height, offsetTop: visualViewport.offsetTop, pageTop: visualViewport.pageTop, scale: visualViewport.scale },
+                button: { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height },
+                hit: hit?.outerHTML.slice(0, 300)
+              };
+            });
+            error.message += `\nMobile hit-test geometry: ${JSON.stringify(geometry)}`;
+            throw error;
+          }
+          assert.equal(await page.locator("body").getAttribute("data-view"), "preview");
+          await assertFittedPreview(page);
+          await page.locator("#show-preview-button").click();
+          assert.equal(await page.locator("body").getAttribute("data-view"), "edit");
+          assert.equal(await page.getByPlaceholder("输入中文翻译（留空则只显示原文）").first().inputValue(), "长回复列表中的目标推文翻译。");
+          await page.locator("#show-preview-button").click();
+          assert.equal(await page.locator("body").getAttribute("data-view"), "preview");
         } finally {
           await page.close();
         }
