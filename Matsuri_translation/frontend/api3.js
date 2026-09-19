@@ -32,6 +32,59 @@
   let draftTimer;
   let databasePromise;
   let persistentStorageAvailable = true;
+  const mobileLayout = window.matchMedia("(max-width: 1099px)");
+  const viewScroll = { edit: 0, preview: 0 };
+  let emptyPreview;
+  let previewFrame;
+  let queryController;
+  let exporting = false;
+
+  function fitPreview() {
+    cancelAnimationFrame(previewFrame);
+    previewFrame = requestAnimationFrame(() => {
+      if (document.body.classList.contains("render-mode")) return;
+      const scroll = $(".preview-scroll");
+      if (!scroll.clientWidth) return;
+      const style = getComputedStyle(scroll);
+      const available = scroll.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const scale = Math.min(1, Math.max(0, available / 640));
+      const capture = $("#capture");
+      capture.style.transform = `scale(${scale})`;
+      $("#capture-frame").style.width = `${640 * scale}px`;
+      $("#capture-frame").style.height = `${capture.offsetHeight * scale}px`;
+    });
+  }
+
+  function setView(view) {
+    if (view === "preview" && !state.data) return;
+    const previous = document.body.dataset.view;
+    if (mobileLayout.matches) viewScroll[previous] = window.scrollY;
+    document.body.dataset.view = view;
+    for (const name of ["edit", "preview"]) {
+      const tab = $(`#${name}-view-button`);
+      tab.setAttribute("aria-selected", String(name === view));
+      tab.tabIndex = name === view ? 0 : -1;
+    }
+    $("#show-preview-button").textContent = view === "preview" ? "返回编辑" : "预览图片";
+    fitPreview();
+    if (mobileLayout.matches && previous !== view) {
+      // Restore after the scaled frame is measured, otherwise long previews clamp the scroll.
+      requestAnimationFrame(() => {
+        if (document.body.dataset.view === view) window.scrollTo(0, viewScroll[view]);
+      });
+    }
+  }
+
+  function updateWorkflow() {
+    const loaded = Boolean(state.data);
+    document.body.classList.toggle("has-tweets", loaded);
+    $("#welcome-guide").hidden = loaded;
+    $("#preview-view-button").disabled = !loaded;
+    $("#action-bar").hidden = !loaded;
+    $("#download-button").disabled = exporting || Boolean(queryController) || !state.included.some(Boolean);
+    $("#reset-button").disabled = exporting;
+    $("#query-button").disabled = exporting || Boolean(queryController);
+  }
 
   function readPreferences() {
     try {
@@ -141,6 +194,15 @@
     element.hidden = false;
     element.className = `status${type === "error" ? " error" : ""}`;
     element.textContent = message;
+  }
+
+  function setExportStatus(message, type = "info") {
+    const element = $("#export-status");
+    element.hidden = !message;
+    element.className = `status${type === "error" ? " error" : ""}`;
+    element.textContent = message;
+    // Keep the existing status channel for API error reporting and screen readers.
+    setStatus(message, type);
   }
 
   function choiceName(choice) {
@@ -666,6 +728,14 @@
     });
     capture.append(stack);
     $("#preview-hint").textContent = `${state.included.filter(Boolean).length} 条推文 · 640px`;
+    if (!state.included.some(Boolean)) {
+      const message = document.createElement("div");
+      message.className = "empty-preview";
+      message.textContent = "还没有选中推文，请回到编辑内容，勾选要出图的推文。";
+      capture.append(message);
+    }
+    updateWorkflow();
+    fitPreview();
   }
 
   function buildEditor() {
@@ -698,9 +768,12 @@
       textarea.placeholder = "输入中文翻译（留空则只显示原文）";
       textarea.value = state.translations[index] || "";
       textarea.dataset.index = index;
+      textarea.setAttribute("aria-label", `翻译 @${tweet.author.screenName} 的第 ${index + 1} 条推文`);
+      textarea.disabled = !state.included[index];
       include.addEventListener("change", () => {
         state.included[index] = include.checked;
         item.classList.toggle("disabled", !include.checked);
+        textarea.disabled = !include.checked;
         renderPreview();
       });
       textarea.addEventListener("input", () => {
@@ -739,29 +812,46 @@
     $("#recommended-selection").textContent = data.mode === "timeline" ? "前 3 条" : "仅目标";
     $("#translation-panel").hidden = false;
     $("#style-panel").hidden = false;
-    $("#action-bar").hidden = false;
+    viewScroll.preview = 0;
+    setView("edit");
   }
 
   async function queryTweet(url) {
+    if (exporting) return;
+    setExportStatus("");
+    queryController?.abort();
+    const controller = new AbortController();
+    queryController = controller;
+    updateWorkflow();
     const button = $("#query-button");
     button.disabled = true;
     button.textContent = "读取中…";
+    $("#tweet-form").setAttribute("aria-busy", "true");
+    $("#tweet-url").blur();
     setStatus("正在读取公开主页、上下文和回复，这通常只需要几秒钟。");
     try {
       const response = await fetch("/api/tweet", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url }),
+        signal: controller.signal
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error?.message || "读取失败");
+      if (controller.signal.aborted) return;
       loadData(payload);
       setStatus("");
     } catch (error) {
+      if (controller.signal.aborted) return;
       setStatus(error.message || "无法读取这个主页或推文", "error");
     } finally {
-      button.disabled = false;
-      button.textContent = "查询";
+      if (queryController === controller) {
+        queryController = null;
+        button.disabled = false;
+        button.textContent = "查询";
+        $("#tweet-form").removeAttribute("aria-busy");
+        updateWorkflow();
+      }
     }
   }
 
@@ -795,6 +885,8 @@
   }
 
   async function downloadPng() {
+    if (exporting || queryController || !state.data) return;
+    const exportData = state.data;
     const button = $("#download-button");
     const selection = state.data.tweets.flatMap((tweet, index) => state.included[index]
       ? [{ id: tweet.id, translation: state.translations[index] || "" }]
@@ -804,9 +896,11 @@
       return;
     }
     button.disabled = true;
+    exporting = true;
+    updateWorkflow();
     button.textContent = "正在生成…";
     try {
-      setStatus("服务端正在用与预览相同的 Chromium 页面生成 2x PNG…");
+      setExportStatus("正在生成高清 PNG，请稍候…");
       const created = await fetch("/api/render", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -827,13 +921,14 @@
       const imageResponse = await fetch(`/cache/${encodeURIComponent(filename)}.png`, { cache: "no-store" });
       if (!imageResponse.ok) throw new Error("生成的图片暂时无法下载");
       const blob = await imageResponse.blob();
-      const source = state.data.query?.screenName || state.data.id;
-      window.saveAs(blob, `TweetToaster-${source}-${state.data.id}.png`);
-      setStatus("");
+      const source = exportData.query?.screenName || exportData.id;
+      window.saveAs(blob, `TweetToaster-${source}-${exportData.id}.png`);
+      setExportStatus("");
     } catch (error) {
-      setStatus(`图片生成失败：${error.message}`, "error");
+      setExportStatus(`图片生成失败：${error.message}`, "error");
     } finally {
-      button.disabled = false;
+      exporting = false;
+      updateWorkflow();
       button.textContent = "下载 PNG";
     }
   }
@@ -887,13 +982,27 @@
   }
 
   function reset() {
+    if (exporting) return;
+    queryController?.abort();
+    queryController = null;
+    $("#query-button").disabled = false;
+    $("#query-button").textContent = "查询";
+    $("#tweet-form").removeAttribute("aria-busy");
     state.data = null;
     state.translations = [];
     state.included = [];
-    $("#capture").innerHTML = `<div class="empty-preview"><div class="skeleton profile-skeleton"></div><div class="skeleton line line-wide"></div><div class="skeleton line line-medium"></div><div class="skeleton media-skeleton"></div><div class="skeleton line line-short"></div><p>一张可以直接发布的烤推图，会出现在这里。</p></div>`;
+    $("#capture").replaceChildren(emptyPreview.cloneNode(true));
+    $("#translation-list").replaceChildren();
     $("#translation-panel").hidden = true;
-    $("#action-bar").hidden = true;
-    $("#tweet-url").focus();
+    $("#preview-hint").textContent = "读取推文后，在这里查看效果";
+    $("#tweet-url").value = "";
+    updateWorkflow();
+    setView("edit");
+    viewScroll.edit = viewScroll.preview = 0;
+    $(".settings-scroll").scrollTop = 0;
+    window.scrollTo(0, 0);
+    $("#tweet-url").focus({ preventScroll: true });
+    $("#export-status").hidden = true;
     setStatus("");
   }
 
@@ -991,12 +1100,30 @@
     $("#select-none").addEventListener("click", () => setSelection("none"));
     $("#download-button").addEventListener("click", downloadPng);
     $("#reset-button").addEventListener("click", reset);
-    $("#show-settings").addEventListener("click", () => $("#settings-pane").classList.add("open"));
-    $("#hide-settings").addEventListener("click", () => $("#settings-pane").classList.remove("open"));
+    $("#edit-view-button").addEventListener("click", () => setView("edit"));
+    $("#preview-view-button").addEventListener("click", () => setView("preview"));
+    $("#show-preview-button").addEventListener("click", () => setView(document.body.dataset.view === "preview" ? "edit" : "preview"));
+    $(".view-switch").addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const view = event.key === "Home" ? "edit" : event.key === "End" ? "preview" : document.body.dataset.view === "edit" ? "preview" : "edit";
+      if (view === "preview" && !state.data) return;
+      setView(view);
+      $(`#${view}-view-button`).focus();
+    });
+    const resizeObserver = new ResizeObserver(fitPreview);
+    resizeObserver.observe($("#capture"));
+    resizeObserver.observe($(".preview-scroll"));
+    const actionObserver = new ResizeObserver(() => {
+      document.documentElement.style.setProperty("--action-height", `${$("#action-bar").offsetHeight}px`);
+    });
+    actionObserver.observe($("#action-bar"));
+    mobileLayout.addEventListener("change", fitPreview);
   }
 
   window.TweetToaster = { renderForBot, loadData };
   document.addEventListener("DOMContentLoaded", async () => {
+    emptyPreview = $("#capture .empty-preview").cloneNode(true);
     bind();
     const params = new URLSearchParams(location.search);
     if (params.get("render") === "1") {
