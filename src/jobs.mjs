@@ -42,7 +42,8 @@ export class MemoryJobQueue {
     const cutoff = Date.now() - this.ttlMs;
     for (const [id, job] of this.jobs) {
       const finished = job.state === "SUCCESS" || job.state === "FAILURE";
-      if (finished && (job.createdAt < cutoff || this.jobs.size > this.maxJobs)) this.jobs.delete(id);
+      const expired = job.createdAt < cutoff;
+      if (expired || (finished && this.jobs.size > this.maxJobs)) this.jobs.delete(id);
     }
   }
 }
