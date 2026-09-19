@@ -95,7 +95,8 @@ async function serveStatic(requestPath, response, publicDir) {
   return true;
 }
 
-async function readLocalTemplate(value, publicDir, maxBytes = 64 * 1024) {
+async function readLocalTemplate(value, publicDir, signal, maxBytes = 64 * 1024) {
+  signal?.throwIfAborted();
   const relative = value.replace(/^\/+/, "");
   const root = `${path.resolve(publicDir)}${path.sep}`;
   const candidates = [relative];
@@ -109,6 +110,7 @@ async function readLocalTemplate(value, publicDir, maxBytes = 64 * 1024) {
   let filePath;
   let info;
   for (const candidate of paths) {
+    signal?.throwIfAborted();
     try {
       const candidateInfo = await stat(candidate);
       if (candidateInfo.isFile()) {
@@ -130,7 +132,8 @@ async function readLocalTemplate(value, publicDir, maxBytes = 64 * 1024) {
     error.status = 400;
     throw error;
   }
-  return readFile(filePath, "utf8");
+  signal?.throwIfAborted();
+  return readFile(filePath, { encoding: "utf8", signal });
 }
 
 function validateAutoEvent(event) {
@@ -197,10 +200,26 @@ function validateRenderEvent(event) {
   return normalized;
 }
 
-async function resolveTemplate(value, { fetchImpl, publicDir }) {
-  if (/^https:\/\//i.test(value)) return fetchTemplate(value, { fetchImpl });
-  if (/^(?:\/?template\/|\/).+\.txt$/i.test(value)) return readLocalTemplate(value, publicDir);
+async function resolveTemplate(value, { fetchImpl, publicDir, signal }) {
+  signal?.throwIfAborted();
+  if (/^https:\/\//i.test(value)) return fetchTemplate(value, { fetchImpl, signal });
+  if (/^(?:\/?template\/|\/).+\.txt$/i.test(value)) return readLocalTemplate(value, publicDir, signal);
   return value;
+}
+
+async function whileConnected(response, work) {
+  const controller = new AbortController();
+  const disconnect = () => {
+    if (!response.writableEnded) controller.abort(new Error("客户端已断开连接"));
+  };
+  response.once("close", disconnect);
+  try {
+    if (response.destroyed) disconnect();
+    controller.signal.throwIfAborted();
+    return await work(controller.signal);
+  } finally {
+    response.removeListener("close", disconnect);
+  }
 }
 
 export function createTweetToasterServer({
@@ -222,33 +241,35 @@ export function createTweetToasterServer({
 
       if (request.method === "POST" && requestUrl.pathname === "/api/tweet") {
         const body = await readJson(request);
-        const data = await provider.fetchTweet(body.url ?? body.input);
+        const data = await whileConnected(response, (signal) => provider.fetchTweet(body.url ?? body.input, { signal }));
         return json(response, 200, data);
       }
 
       if (request.method === "POST" && requestUrl.pathname === "/api/auto") {
         const event = validateAutoEvent(await readJson(request, 36 * 1024 * 1024));
-        const taskId = jobs.add(async () => {
-          const data = await provider.fetchTweet(event.tweet);
-          const template = await resolveTemplate(event.template, { fetchImpl, publicDir });
-          return renderBot({ data, ...event, template });
+        const taskId = jobs.add(async ({ signal }) => {
+          const data = await provider.fetchTweet(event.tweet, { signal });
+          const template = await resolveTemplate(event.template, { fetchImpl, publicDir, signal });
+          signal.throwIfAborted();
+          return renderBot({ data, ...event, template }, { signal });
         });
         return json(response, 200, { task_id: taskId });
       }
 
       if (request.method === "POST" && requestUrl.pathname === "/api/render") {
         const event = validateRenderEvent(await readJson(request, 36 * 1024 * 1024));
-        const taskId = jobs.add(async () => {
-          const data = await provider.fetchTweet(event.tweet);
-          const template = await resolveTemplate(event.template, { fetchImpl, publicDir });
-          return renderBot({ data, ...event, template });
+        const taskId = jobs.add(async ({ signal }) => {
+          const data = await provider.fetchTweet(event.tweet, { signal });
+          const template = await resolveTemplate(event.template, { fetchImpl, publicDir, signal });
+          signal.throwIfAborted();
+          return renderBot({ data, ...event, template }, { signal });
         });
         return json(response, 200, { task_id: taskId });
       }
 
       if (request.method === "POST" && requestUrl.pathname === "/api/tasks") {
         const body = await readJson(request);
-        const taskId = jobs.add(async () => JSON.stringify(await provider.fetchTweet(body.url)));
+        const taskId = jobs.add(async ({ signal }) => JSON.stringify(await provider.fetchTweet(body.url, { signal })));
         return json(response, 200, { task_id: taskId });
       }
 
@@ -259,13 +280,14 @@ export function createTweetToasterServer({
           task_id: taskId,
           state: task.state,
           result: task.result,
-          error: task.error || undefined
+          error: task.error || undefined,
+          code: task.code || undefined
         });
       }
 
       if (request.method === "GET" && requestUrl.pathname === "/api/media") {
         const remote = requestUrl.searchParams.get("url") || "";
-        const image = await fetchImage(remote, { fetchImpl });
+        const image = await whileConnected(response, (signal) => fetchImage(remote, { fetchImpl, signal }));
         response.writeHead(200, {
           ...SECURITY_HEADERS,
           "content-type": image.contentType,
@@ -291,6 +313,7 @@ export function createTweetToasterServer({
 
       json(response, 404, { error: { code: "NOT_FOUND", message: "接口不存在" } });
     } catch (error) {
+      if (response.destroyed) return;
       if ((Number(error?.status) || 500) >= 500) console.error(error);
       errorJson(response, error);
     }

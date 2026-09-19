@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import http from "node:http";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -9,16 +10,20 @@ import { normalizedTweet } from "./fixtures.mjs";
 
 async function withServer(callback, options = {}) {
   const calls = [];
+  const jobs = options.jobs || new MemoryJobQueue();
   const server = createTweetToasterServer({
     provider: { fetchTweet: async (url) => { calls.push(url); return normalizedTweet(); } },
-    jobs: new MemoryJobQueue(),
+    jobs,
     renderBot: async (payload) => { calls.push(payload); return "rendered-file"; },
     ...options
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
   try { await callback({ origin, calls }); }
-  finally { await new Promise((resolve) => server.close(resolve)); }
+  finally {
+    await jobs.close();
+    await new Promise((resolve) => server.close(resolve));
+  }
 }
 
 test("health and tweet API return JSON", () => withServer(async ({ origin, calls }) => {
@@ -140,4 +145,101 @@ test("bot API loads a mounted legacy template path", async () => {
     assert.equal(job.state, "SUCCESS");
     assert.equal(calls[1].template, "<div>{T}</div>");
   }, { publicDir });
+});
+
+async function pollTerminal(origin, taskId) {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const task = await fetch(`${origin}/api/get_task=${taskId}`).then((response) => response.json());
+    if (task.state === "SUCCESS" || task.state === "FAILURE") return task;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  assert.fail("task did not reach a terminal state");
+}
+
+test("all queued APIs propagate deadlines to provider, fail explicitly, and recover", async () => {
+  for (const endpoint of ["/api/auto", "/api/render", "/api/tasks"]) {
+    const jobs = new MemoryJobQueue({ maxActive: 1, jobTimeoutMs: 100 });
+    let fail = true;
+    let aborted = false;
+    let renderCalls = 0;
+    const provider = { fetchTweet: async (input, { signal }) => {
+      assert.ok(signal instanceof AbortSignal);
+      if (!fail) return normalizedTweet();
+      return new Promise((resolve, reject) => signal.addEventListener("abort", () => {
+        aborted = true;
+        reject(signal.reason);
+      }, { once: true }));
+    } };
+    await withServer(async ({ origin }) => {
+      const submit = () => fetch(`${origin}${endpoint}`, {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tweet: "minatoaqua", url: "minatoaqua", selection: [{ id: "1383771374183878658", translation: "翻译" }] })
+      }).then((response) => response.json());
+      const timedOut = await submit();
+      const result = await pollTerminal(origin, timedOut.task_id);
+      assert.equal(result.state, "FAILURE");
+      assert.equal(result.code, "JOB_TIMEOUT");
+      assert.match(result.error, /超时/);
+      assert.equal(aborted, true);
+      assert.equal(renderCalls, 0, "aborted fetch must not start a render later");
+      fail = false;
+      const healthy = await submit();
+      assert.equal((await pollTerminal(origin, healthy.task_id)).state, "SUCCESS");
+      assert.equal((await pollTerminal(origin, timedOut.task_id)).code, "JOB_TIMEOUT");
+      const missing = await fetch(`${origin}/api/get_task=unknown`).then((response) => response.json());
+      assert.equal(missing.state, "FAILURE");
+      assert.equal(missing.code, "JOB_NOT_FOUND");
+    }, { jobs, provider, renderBot: async (payload, { signal }) => {
+      assert.equal(signal.aborted, false);
+      renderCalls += 1;
+      return "healthy-render";
+    } });
+  }
+});
+
+test("render cancellation reaches the same signal and admission waits for its cleanup", async () => {
+  const jobs = new MemoryJobQueue({ maxActive: 1, jobTimeoutMs: 100 });
+  let providerSignal;
+  let completeCleanup;
+  let aborted = false;
+  await withServer(async ({ origin }) => {
+    const { task_id: taskId } = await fetch(`${origin}/api/auto`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tweet: "minatoaqua" })
+    }).then((response) => response.json());
+    const result = await pollTerminal(origin, taskId);
+    assert.equal(result.code, "JOB_TIMEOUT");
+    assert.equal(aborted, true);
+    assert.equal(jobs.active.size, 1);
+    assert.throws(() => jobs.add(async () => "extra"), { code: "QUEUE_FULL" });
+    completeCleanup("must not overwrite failure");
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(jobs.active.size, 0);
+    assert.equal((await pollTerminal(origin, taskId)).code, "JOB_TIMEOUT");
+  }, {
+    jobs,
+    provider: { fetchTweet: async (input, { signal }) => { providerSignal = signal; return normalizedTweet(); } },
+    renderBot: (payload, { signal }) => new Promise((resolve) => {
+      assert.equal(signal, providerSignal);
+      signal.addEventListener("abort", () => { aborted = true; completeCleanup = resolve; }, { once: true });
+    })
+  });
+});
+
+test("disconnecting a direct tweet request aborts its upstream work", { timeout: 5000 }, async () => {
+  let entered;
+  const started = new Promise((resolve) => { entered = resolve; });
+  let cancelled;
+  const stopped = new Promise((resolve) => { cancelled = resolve; });
+  await withServer(async ({ origin }) => {
+    const request = http.request(`${origin}/api/tweet`, { method: "POST", headers: { "content-type": "application/json" } });
+    request.on("error", () => {});
+    request.end(JSON.stringify({ url: "minatoaqua" }));
+    await started;
+    request.destroy();
+    await stopped;
+  }, { provider: { fetchTweet: async (input, { signal }) => new Promise((resolve, reject) => {
+    entered();
+    signal.addEventListener("abort", () => { cancelled(); reject(signal.reason); }, { once: true });
+  }) } });
 });
