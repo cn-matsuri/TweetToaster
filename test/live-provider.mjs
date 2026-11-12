@@ -14,3 +14,19 @@ test("live free provider returns a profile timeline and selectable replies", { t
   assert.ok(conversation.tweets.some((tweet) => tweet.focal));
   assert.ok(conversation.tweets.some((tweet) => tweet.relation === "reply"));
 });
+
+test("live elonmusk timeline remains readable through the verified ID recovery route", { timeout: 30000 }, async () => {
+  let requests = 0;
+  const provider = new FxTwitterProvider({ fetchImpl: async (url, options) => {
+    requests++;
+    // Reproduce the observed transient username-route 404. The identity lookup
+    // and ID timeline below are real requests to the free public provider.
+    if (requests === 1) return new Response(JSON.stringify({ code: 404, results: [] }), { status: 404 });
+    return fetch(url, options);
+  } });
+  const data = await provider.fetchTweet("elonmusk");
+  assert.equal(data.mode, "timeline");
+  assert.ok(data.tweets.length > 0);
+  assert.equal(data.query.screenName, "elonmusk");
+  assert.equal(requests, 3);
+});

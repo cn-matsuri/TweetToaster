@@ -3,8 +3,9 @@ import { readFile, stat } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { TweetProviderError } from "./provider.mjs";
+import { parseTweetInput, TweetProviderError } from "./provider.mjs";
 import { fetchImage, fetchTemplate } from "./remote.mjs";
+import { MemorySnapshotStore } from "./snapshots.mjs";
 
 const MIME = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -184,6 +185,12 @@ function validateSelection(value, { optional = false } = {}) {
 function validateRenderEvent(event) {
   const normalized = validateAutoEvent(event);
   normalized.selection = validateSelection(event.selection);
+  if (event.snapshotId != null) {
+    if (typeof event.snapshotId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(event.snapshotId)) {
+      throw new TweetProviderError("查询快照标识无效，请重新查询", { status: 400, code: "INVALID_SNAPSHOT" });
+    }
+    normalized.snapshotId = event.snapshotId.toLowerCase();
+  }
   if (normalized.template.length > 64 * 1024) {
     throw new TweetProviderError("模板文件过大", { status: 413, code: "TEMPLATE_TOO_LARGE" });
   }
@@ -198,6 +205,33 @@ function validateRenderEvent(event) {
   }
   normalized.fontSize = Math.min(36, Math.max(18, normalized.fontSize));
   return normalized;
+}
+
+function queryKey(input) {
+  try {
+    const query = parseTweetInput(input);
+    return query.kind === "status" ? `status:${query.id}` : `profile:${query.screenName.toLowerCase()}`;
+  } catch {
+    return null;
+  }
+}
+
+function validateSnapshotSource(data, input) {
+  const key = queryKey(input);
+  const sources = [data.query?.canonicalUrl, data.canonicalUrl].map(queryKey).filter(Boolean);
+  if (!key || !sources.includes(key)) {
+    throw new TweetProviderError("查询快照与当前推文不匹配，请重新查询", { status: 409, code: "SNAPSHOT_MISMATCH" });
+  }
+}
+
+function validateSelectedTweets(data, selection) {
+  if (!selection) return;
+  const available = new Set(data.tweets.map((tweet) => String(tweet.id)));
+  if (selection.some((item) => !available.has(item.id))) {
+    throw new TweetProviderError("部分选中的推文已不在当前结果中；请先复制保存翻译，再重新查询", {
+      status: 409, code: "SELECTION_NOT_FOUND"
+    });
+  }
 }
 
 async function resolveTemplate(value, { fetchImpl, publicDir, signal }) {
@@ -228,11 +262,12 @@ export function createTweetToasterServer({
   renderBot,
   publicDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../Matsuri_translation/frontend"),
   cacheDir = path.join(publicDir, "cache"),
-  fetchImpl = globalThis.fetch
+  fetchImpl = globalThis.fetch,
+  snapshots = new MemorySnapshotStore()
 }) {
   if (!provider || !jobs || !renderBot) throw new Error("provider、jobs 和 renderBot 均为必填项");
 
-  return http.createServer(async (request, response) => {
+  const server = http.createServer(async (request, response) => {
     const requestUrl = new URL(request.url, "http://localhost");
     try {
       if (request.method === "GET" && requestUrl.pathname === "/api/health") {
@@ -242,13 +277,16 @@ export function createTweetToasterServer({
       if (request.method === "POST" && requestUrl.pathname === "/api/tweet") {
         const body = await readJson(request);
         const data = await whileConnected(response, (signal) => provider.fetchTweet(body.url ?? body.input, { signal }));
-        return json(response, 200, data);
+        if (response.destroyed) return;
+        const snapshotId = snapshots.add(data);
+        return json(response, 200, { ...data, snapshotId });
       }
 
       if (request.method === "POST" && requestUrl.pathname === "/api/auto") {
         const event = validateAutoEvent(await readJson(request, 36 * 1024 * 1024));
         const taskId = jobs.add(async ({ signal }) => {
           const data = await provider.fetchTweet(event.tweet, { signal });
+          validateSelectedTweets(data, event.selection);
           const template = await resolveTemplate(event.template, { fetchImpl, publicDir, signal });
           signal.throwIfAborted();
           return renderBot({ data, ...event, template }, { signal });
@@ -258,8 +296,21 @@ export function createTweetToasterServer({
 
       if (request.method === "POST" && requestUrl.pathname === "/api/render") {
         const event = validateRenderEvent(await readJson(request, 36 * 1024 * 1024));
+        // Capture a private data copy before admission. Cache eviction while a
+        // job waits must not change the exact preview it was asked to export.
+        const snapshot = event.snapshotId ? snapshots.get(event.snapshotId) : null;
+        if (event.snapshotId && !snapshot) {
+          throw new TweetProviderError("查询快照已过期；请先复制保存翻译，再重新查询后下载", {
+            status: 409, code: "SNAPSHOT_EXPIRED"
+          });
+        }
+        if (snapshot) {
+          validateSnapshotSource(snapshot, event.tweet);
+          validateSelectedTweets(snapshot, event.selection);
+        }
         const taskId = jobs.add(async ({ signal }) => {
-          const data = await provider.fetchTweet(event.tweet, { signal });
+          const data = snapshot || await provider.fetchTweet(event.tweet, { signal });
+          validateSelectedTweets(data, event.selection);
           const template = await resolveTemplate(event.template, { fetchImpl, publicDir, signal });
           signal.throwIfAborted();
           return renderBot({ data, ...event, template }, { signal });
@@ -318,4 +369,6 @@ export function createTweetToasterServer({
       errorJson(response, error);
     }
   });
+  server.once("close", () => snapshots.close());
+  return server;
 }
