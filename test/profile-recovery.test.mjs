@@ -15,7 +15,7 @@ for (const status of [404, 200]) {
       calls.push(url);
       if (calls.length === 1) return json({ code: 404, results: [] }, status);
       if (calls.length === 2) return json(profile());
-      return json(timelinePayload());
+      return json(timelinePayload("elonmusk"));
     } });
     const data = await provider.fetchTweet("@ElonMusk");
     assert.deepEqual(calls, [
@@ -24,6 +24,7 @@ for (const status of [404, 200]) {
       "https://example.com/2/profile/id:44196397/statuses?count=12"
     ]);
     assert.equal(data.tweets.length, 2);
+    assert.ok(data.tweets.every((tweet) => tweet.author.screenName === "elonmusk"));
     assert.equal(data.query.screenName, "ElonMusk");
     assert.equal(data.canonicalUrl, "https://x.com/ElonMusk");
   });
@@ -60,6 +61,20 @@ test("unavailable profiles fail clearly after bounded recovery, without guessing
   });
   assert.equal(count, 2);
 });
+
+for (const code of [404, 500]) {
+  test(`ID recovery payload error ${code} is unavailable, not an empty authored timeline`, async () => {
+    let count = 0;
+    const provider = new FxTwitterProvider({ fetchImpl: async () => {
+      count++;
+      if (count === 1) return json({ code: 404 }, 404);
+      if (count === 2) return json(profile());
+      return json({ code, message: "Upstream error", results: [] });
+    } });
+    await assert.rejects(provider.fetchTweet("elonmusk"), { code: "TIMELINE_UNAVAILABLE", status: 503 });
+    assert.equal(count, 3);
+  });
+}
 
 test("rate limits, outages and genuinely empty timelines do not trigger extra identity requests", async () => {
   for (const [status, payload] of [[429, { code: 429 }], [500, { code: 500 }], [200, { code: 200, results: [] }]]) {

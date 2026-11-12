@@ -51,13 +51,14 @@ export function conversationPayload(id = "1383771374183878658") {
   };
 }
 
-export function timelinePayload() {
+export function timelinePayload(screenName = "suisei_hosimati") {
   const first = providerPayload("2087881201143136469").status;
+  const author = { ...first.author, name: screenName === "suisei_hosimati" ? "星街すいせい" : screenName, screen_name: screenName };
   return {
     code: 200,
     results: [
-      { ...first, author: { ...first.author, name: "星街すいせい", screen_name: "suisei_hosimati" } },
-      { ...first, id: "2087000000000000000", url: "https://x.com/suisei_hosimati/status/2087000000000000000", text: "二条目", author: { ...first.author, name: "星街すいせい", screen_name: "suisei_hosimati" } }
+      { ...first, url: `https://x.com/${screenName}/status/${first.id}`, author: { ...author } },
+      { ...first, id: "2087000000000000000", url: `https://x.com/${screenName}/status/2087000000000000000`, text: "二条目", author: { ...author } }
     ],
     cursor: { bottom: "next" }
   };

@@ -21,7 +21,7 @@
 - 手机首页直接输入链接；编辑与预览一键切换，桌面同时对照两栏，长图按屏幕宽度缩放而不改变下载尺寸
 - 接受 `7216_2nd`、`@7216_2nd`、`x.com/7216_2nd` 等主页输入
 - 接受带或不带 `https://` 的 `x.com/.../status/...`、`twitter.com/.../status/...` 单推链接
-- 主页模式列出多条近期公开推文，默认预览前三条，可任意勾选
+- 主页模式只列出该账号本人发布的近期公开推文，不把转推的其他作者混入列表；本人推文中的引用仍保留。默认预览前三条，可任意勾选
 - 单推模式同时列出上下文、目标推文和其他用户回复，可逐条选择、逐条翻译
 - 保留旧版翻译组 Logo 和 `{T}` HTML 模板，并内置、逐份验证 [toastTemplates](https://github.com/cn-matsuri/toastTemplates) 的 49 个可见模板
 - 完整素材库可搜索，只有用户钉住的常用项才进入日常下拉菜单
@@ -70,7 +70,7 @@ curl http://127.0.0.1:8082/api/health
 | `CHROMIUM_PATH` | 自动发现 | Bot/下载截图使用的 Chromium；镜像内已配置 |
 | `TWEET_PROVIDER_URL` | `https://api.fxtwitter.com/2` | 免费推文数据源根地址；也可指向自建 FxEmbed |
 | `TWEET_PROVIDER_TIMEOUT_MS` | `15000` | 数据源超时毫秒数 |
-| `TWEET_TIMELINE_COUNT` | `12` | 主页最多显示的近期推文数，范围 1–20 |
+| `TWEET_TIMELINE_COUNT` | `12` | 主页最多显示的本人近期推文数，范围 1–20；过滤上游转推后可能少于此数，不自动翻页补齐 |
 | `TWEET_REPLY_COUNT` | `20` | 单推最多显示的回复数，范围 0–30 |
 | `TEMPLATE_ALLOWED_HOSTS` | `x.wudifeixue.com,raw.githubusercontent.com` | Bot 可下载模板的 HTTPS 域名白名单 |
 

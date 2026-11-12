@@ -6,8 +6,9 @@ test("live free provider returns a profile timeline and selectable replies", { t
   const provider = new FxTwitterProvider();
   const timeline = await provider.fetchTweet("x.com/suisei_hosimati");
   assert.equal(timeline.mode, "timeline");
-  assert.ok(timeline.tweets.length >= 3);
+  assert.ok(timeline.tweets.length > 0);
   assert.equal(timeline.query.screenName.toLowerCase(), "suisei_hosimati");
+  assert.ok(timeline.tweets.every((tweet) => tweet.author.screenName.toLowerCase() === "suisei_hosimati"));
 
   const conversation = await provider.fetchTweet("x.com/suisei_hosimati/status/2087881201143136469");
   assert.equal(conversation.mode, "conversation");
@@ -28,5 +29,6 @@ test("live elonmusk timeline remains readable through the verified ID recovery r
   assert.equal(data.mode, "timeline");
   assert.ok(data.tweets.length > 0);
   assert.equal(data.query.screenName, "elonmusk");
+  assert.ok(data.tweets.every((tweet) => tweet.author.screenName.toLowerCase() === "elonmusk"));
   assert.equal(requests, 3);
 });
