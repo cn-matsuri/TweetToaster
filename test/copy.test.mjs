@@ -28,7 +28,7 @@ test("compact homepage keeps useful instructions and works through query and res
       assert.doesNotMatch(body, /把推文和翻译|从一条推文开始|开始烤图|不用再来回 P 图|下一张烤推/);
       assert.equal(await page.locator("#welcome-guide, .query-intro").count(), 0);
       assert.ok((await page.locator("#query-button").boundingBox()).y < 240, "the query should be the first task, not follow a tutorial");
-      assert.match(await page.locator(".field-help").textContent(), /主页.*近期推文/);
+      assert.match(await page.locator(".field-help").textContent(), /主页仅显示本人近期推文/);
       assert.match(await page.locator(".library-privacy").textContent(), /浏览器.*原尺寸.*临时上传/);
       assert.match(await page.locator(".template-details").textContent(), /\{T\}/);
       assert.equal(await page.locator("#preview-hint").textContent(), "暂无推文");

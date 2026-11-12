@@ -4,15 +4,11 @@ import test from "node:test";
 import { createTweetToasterServer } from "../src/app.mjs";
 import { MemoryJobQueue } from "../src/jobs.mjs";
 import { MemorySnapshotStore } from "../src/snapshots.mjs";
-import { normalizedConversation } from "./fixtures.mjs";
+import { normalizeTimelineResponse, parseTweetInput } from "../src/provider.mjs";
+import { timelinePayload } from "./fixtures.mjs";
 
 function timeline() {
-  return {
-    ...normalizedConversation(),
-    mode: "timeline",
-    canonicalUrl: "https://x.com/elonmusk",
-    query: { kind: "profile", screenName: "elonmusk", canonicalUrl: "https://x.com/elonmusk" }
-  };
+  return normalizeTimelineResponse(timelinePayload("elonmusk"), parseTweetInput("elonmusk"));
 }
 
 async function withServer(t, options = {}) {

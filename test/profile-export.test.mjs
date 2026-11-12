@@ -15,7 +15,11 @@ const executablePath = process.env.CHROMIUM_PATH || (process.platform === "darwi
   ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" : undefined);
 
 test("recovered profile exports the exact browser preview after the upstream changes, and expiry preserves edits", { timeout: 60000 }, async () => {
-  const raw = timelinePayload();
+  const raw = timelinePayload("elonmusk");
+  raw.results.splice(1, 0, {
+    ...raw.results[0], id: "2087881201143136470", text: "Unrelated repost must not appear",
+    author: { ...raw.results[0].author, name: "Another author", screen_name: "NarutoNolimits" }
+  });
   for (const tweet of raw.results) tweet.author.avatar_url = "";
   let upstreamRequests = 0;
   const provider = new FxTwitterProvider({ fetchImpl: async () => {
@@ -49,6 +53,8 @@ test("recovered profile exports the exact browser preview after the upstream cha
     await page.locator("#query-button").click();
     await page.locator("#translation-panel").waitFor({ state: "visible" });
     assert.equal(upstreamRequests, 3);
+    assert.equal(await page.locator(".translation-item").count(), 2);
+    assert.doesNotMatch(await page.locator("#translation-list").innerText(), /NarutoNolimits|Unrelated repost/);
     await page.locator("#logo-select").selectOption("none");
     await page.locator("#font-size-select").selectOption("30");
     const translations = page.locator("#translation-list textarea");
@@ -57,6 +63,7 @@ test("recovered profile exports the exact browser preview after the upstream cha
     await page.locator("#show-preview-button").click();
     const previewIds = await page.locator("#capture .tweet-card").evaluateAll((cards) => cards.map((card) => card.dataset.tweetId));
     assert.equal(previewIds.length, 2);
+    assert.deepEqual(await page.locator("#capture .tweet-handle").allTextContents(), ["@elonmusk", "@elonmusk"]);
     const previewDates = await page.locator("#capture .tweet-meta").allTextContents();
     await page.evaluate(() => {
       window.saveAs = async (blob) => {
@@ -100,6 +107,7 @@ test("recovered profile exports the exact browser preview after the upstream cha
     assert.deepEqual(exported.dates, previewDates);
     assert.match(exported.text, /第一条不能在下载时消失/);
     assert.match(exported.text, /第二条翻译也要完整保留/);
+    assert.doesNotMatch(exported.text, /NarutoNolimits|Unrelated repost/);
     assert.equal(rendered.fontSize, 30);
     assert.equal(rendered.timeZone, "Asia/Shanghai");
     assert.equal(upstreamRequests, 3, "downloading must not fetch the moving timeline again");

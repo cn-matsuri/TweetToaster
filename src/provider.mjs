@@ -201,11 +201,21 @@ function flattenTimelineResults(results) {
 
 export function normalizeTimelineResponse(payload, parsed, { maxStatuses = 12 } = {}) {
   const results = Array.isArray(payload?.results) ? flattenTimelineResults(payload.results) : [];
-  const raw = uniqueStatuses(results.map((item) => item?.id ? { id: String(item.id), raw: item } : null))
+  // Profile feeds include reposts and thread context authored by other users.
+  // Match the actual author, not reposted_by or the URL. Filter before deduping
+  // and limiting so those entries cannot hide the requested user's own posts.
+  // Quotes stay nested inside their author's post; conversations are separate.
+  const handle = parsed.screenName.toLowerCase();
+  const ownPosts = results.filter((item) => item?.type !== "tombstone" &&
+    typeof item?.author?.screen_name === "string" && item.author.screen_name.toLowerCase() === handle);
+  const raw = uniqueStatuses(ownPosts.map((item) => item?.id ? { id: String(item.id), raw: item } : null))
     .map((item) => item.raw)
     .slice(0, maxStatuses);
   if (payload?.code !== 200 || !raw.length) {
-    throw new TweetProviderError(payload?.message || "该主页暂时没有可读取的公开推文", {
+    const message = payload?.code === 200
+      ? "该主页近期内容中没有可读取的本人推文，请尝试具体推文链接"
+      : payload?.message || "该主页暂时没有可读取的公开推文";
+    throw new TweetProviderError(message, {
       status: 404,
       code: "TIMELINE_NOT_FOUND"
     });
@@ -346,13 +356,16 @@ export class FxTwitterProvider {
       }
       scope.signal.throwIfAborted();
       const recovered = await this.#request(`/profile/id:${id}/statuses?${query}`, options);
+      // HTTP 200 can still carry an upstream error code. Only a successful
+      // timeline may produce the actionable "no authored posts" result below.
+      if (recovered?.code !== 200) throw new TweetProviderError("公开推文数据源未返回有效主页数据");
       return normalizeTimelineResponse(recovered, parsed, { maxStatuses: this.timelineCount });
     } catch (error) {
       signal?.throwIfAborted();
       if (scope.signal.aborted) {
         throw new TweetProviderError("公开推文数据源响应超时", { status: 503, code: "PROVIDER_UNAVAILABLE" });
       }
-      if (!recovering) throw error;
+      if (!recovering || error.code === "TIMELINE_NOT_FOUND") throw error;
       const unavailable = new TweetProviderError("暂时无法读取该主页，请稍后重试或粘贴具体推文链接", {
         status: 503, code: "TIMELINE_UNAVAILABLE"
       });
