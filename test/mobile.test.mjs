@@ -56,7 +56,7 @@ test("mobile homepage, editing and real PNG export remain usable across viewport
   const server = createTweetToasterServer({
     provider: {
       fetchTweet: async (input) => {
-        if (input === "failure") throw Object.assign(new Error("测试数据源暂时不可用，请重试"), { status: 400 });
+        if (input === "failure") throw Object.assign(new Error("测试数据源暂时不可用，请重试"), { status: 503, code: "PROVIDER_UNAVAILABLE" });
         if (input === "long-conversation") {
           const conversation = structuredClone(data);
           const reply = conversation.tweets[1];
@@ -99,7 +99,7 @@ test("mobile homepage, editing and real PNG export remain usable across viewport
   const browser = await chromium.launch({ headless: true, executablePath: chromePath });
   const pageErrors = [];
   const newPage = async (width = 400, height = 662) => {
-    const page = await browser.newPage({ viewport: { width, height }, timezoneId: "Asia/Shanghai", isMobile: true, hasTouch: true });
+    const page = await browser.newPage({ viewport: { width, height }, timezoneId: "Asia/Shanghai", locale: "zh-CN", isMobile: true, hasTouch: true });
     page.setDefaultTimeout(10000);
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.goto(origin, { waitUntil: "networkidle" });
@@ -160,7 +160,7 @@ test("mobile homepage, editing and real PNG export remain usable across viewport
             visualHeight: visualViewport.height
           }));
           assert.deepEqual(viewport, { layoutWidth: width, layoutHeight: 780, visualWidth: width, visualHeight: 780 }, "long content must not auto-expand the mobile layout viewport");
-          await page.getByPlaceholder("输入中文翻译（留空则只显示原文）").first().fill("长回复列表中的目标推文翻译。");
+          await page.getByPlaceholder("输入翻译（留空则只显示原文）").first().fill("长回复列表中的目标推文翻译。");
           await page.locator("#font-size-select").scrollIntoViewIfNeeded();
           await page.locator("#font-size-select").selectOption("30");
           assert.ok(await page.evaluate(() => window.scrollY > 2000), "the appearance controls must be reached through the long editor");
@@ -187,7 +187,7 @@ test("mobile homepage, editing and real PNG export remain usable across viewport
           await assertFittedPreview(page);
           await page.locator("#show-preview-button").click();
           assert.equal(await page.locator("body").getAttribute("data-view"), "edit");
-          assert.equal(await page.getByPlaceholder("输入中文翻译（留空则只显示原文）").first().inputValue(), "长回复列表中的目标推文翻译。");
+          assert.equal(await page.getByPlaceholder("输入翻译（留空则只显示原文）").first().inputValue(), "长回复列表中的目标推文翻译。");
           await page.locator("#show-preview-button").click();
           assert.equal(await page.locator("body").getAttribute("data-view"), "preview");
         } finally {
@@ -205,7 +205,7 @@ test("mobile homepage, editing and real PNG export remain usable across viewport
         assert.equal(await page.locator("body").getAttribute("data-view"), "edit");
         assert.equal(await page.locator("#preview-view-button").isDisabled(), false);
         const translation = "翻译内容需要一直保留。\n".repeat(20).trim();
-        const fields = page.getByPlaceholder("输入中文翻译（留空则只显示原文）");
+        const fields = page.getByPlaceholder("输入翻译（留空则只显示原文）");
         await fields.first().fill(translation);
         await page.getByLabel("包含 @fan 的第 2 条推文").check();
         await fields.nth(1).fill("回复也要保留，不受切换页面影响。");

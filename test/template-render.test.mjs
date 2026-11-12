@@ -23,7 +23,7 @@ test("every bundled template renders its real logo without distortion or overflo
   const browser = await chromium.launch({ headless: true, executablePath: chromePath });
   try {
     const origin = `http://127.0.0.1:${server.address().port}`;
-    const page = await browser.newPage({ viewport: { width: 720, height: 1200 } });
+    const page = await browser.newPage({ viewport: { width: 720, height: 1200 }, locale: "zh-CN" });
     await page.goto(`${origin}/?render=1`, { waitUntil: "networkidle" });
     for (const item of catalog.templates) {
       const template = await readFile(path.join(templateRoot, item.file), "utf8");

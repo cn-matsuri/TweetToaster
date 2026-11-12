@@ -1,6 +1,13 @@
 (function () {
   "use strict";
 
+  const i18n = window.TweetToasterI18n;
+  const t = (key, params) => i18n.t(key, params);
+  const message = (key, params = {}) => ({ key, params });
+  const errorMessage = (error, fallback = "error.generic", prefix) => ({ error, fallback, prefix });
+  const localError = (i18nKey, params = {}, code) => Object.assign(new Error(t(i18nKey, params)), { i18nKey, params, code });
+  const apiError = (value) => Object.assign(new Error(value?.message || ""), { code: value?.code });
+
   const state = {
     data: null,
     customLogo: "",
@@ -38,6 +45,8 @@
   let previewFrame;
   let queryController;
   let exporting = false;
+  let statusState = { message: "", type: "info" };
+  let exportStatusState = { message: "", type: "info" };
 
   function fitPreview() {
     cancelAnimationFrame(previewFrame);
@@ -65,7 +74,7 @@
       tab.setAttribute("aria-selected", String(name === view));
       tab.tabIndex = name === view ? 0 : -1;
     }
-    $("#show-preview-button").textContent = view === "preview" ? "返回编辑" : "预览图片";
+    $("#show-preview-button").textContent = t(view === "preview" ? "nav.back" : "nav.preview");
     fitPreview();
     if (mobileLayout.matches && previous !== view) {
       // Restore after the scaled frame is measured, otherwise long previews clamp the scroll.
@@ -83,6 +92,8 @@
     $("#download-button").disabled = exporting || Boolean(queryController) || !state.included.some(Boolean);
     $("#reset-button").disabled = exporting;
     $("#query-button").disabled = exporting || Boolean(queryController);
+    $("#language-switch").setAttribute("aria-disabled", String(exporting));
+    $("#language-switch").querySelectorAll("button").forEach((button) => { button.disabled = exporting; });
   }
 
   function readPreferences() {
@@ -128,10 +139,20 @@
     const database = await openDatabase();
     return new Promise((resolve, reject) => {
       const transaction = database.transaction("assets", mode);
-      const request = operation(transaction.objectStore("assets"));
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-      transaction.onabort = () => reject(transaction.error);
+      let result;
+      let failure;
+      // A successful put request can still be rolled back. Only report a save
+      // after the whole transaction commits, including on Safari/WebKit.
+      transaction.oncomplete = () => failure ? reject(failure) : resolve(result);
+      transaction.onabort = () => reject(transaction.error || failure || new DOMException("Local asset transaction aborted", "AbortError"));
+      try {
+        const request = operation(transaction.objectStore("assets"));
+        request.onsuccess = () => { result = request.result; };
+        request.onerror = () => { failure = request.error; };
+      } catch (error) {
+        transaction.abort();
+        reject(error);
+      }
     });
   }
 
@@ -140,13 +161,24 @@
   const deleteStoredAsset = (id) => assetTransaction("readwrite", (store) => store.delete(id));
 
   async function persistAsset(asset) {
-    if (!persistentStorageAvailable) return false;
+    if (!persistentStorageAvailable) {
+      setStatus(message("assets.persistUnavailable"), "error");
+      return false;
+    }
     try {
-      await putStoredAsset(asset);
+      const { previewUrl, ...stored } = asset;
+      if (asset.kind === "logo" && asset.blob instanceof Blob) {
+        // WebKit can reject Blob/File structured clones. Preserve the original
+        // image bytes without resizing, and reconstruct a Blob when reading.
+        stored.imageBytes = await asset.blob.arrayBuffer();
+        stored.mimeType = asset.blob.type;
+        delete stored.blob;
+      }
+      await putStoredAsset(stored);
       return true;
     } catch {
-      persistentStorageAvailable = false;
-      setStatus("浏览器无法持久保存素材；当前素材仍可在本次打开期间使用。", "error");
+      // A failed individual asset must not disable later template/logo saves.
+      setStatus(message("assets.persistUnavailable"), "error");
       return false;
     }
   }
@@ -184,34 +216,35 @@
     return url ? `/api/media?url=${encodeURIComponent(url)}` : "";
   }
 
-  function setStatus(message, type = "info") {
-    const element = $("#status");
-    if (!message) {
-      element.hidden = true;
-      return;
-    }
-    element.hidden = false;
+  function writeStatus(element, value) {
+    const { message: text, type } = value;
+    element.hidden = !text;
     element.className = `status${type === "error" ? " error" : ""}`;
-    element.textContent = message;
+    const translated = typeof text === "string" ? text
+      : text.error ? i18n.error(text.error, text.fallback) : t(text.key, text.params);
+    element.textContent = text?.prefix ? t(text.prefix, { message: translated }) : translated;
   }
 
-  function setExportStatus(message, type = "info") {
-    const element = $("#export-status");
-    element.hidden = !message;
-    element.className = `status${type === "error" ? " error" : ""}`;
-    element.textContent = message;
+  function setStatus(text, type = "info") {
+    statusState = { message: text, type };
+    writeStatus($("#status"), statusState);
+  }
+
+  function setExportStatus(text, type = "info") {
+    exportStatusState = { message: text, type };
+    writeStatus($("#export-status"), exportStatusState);
     // Keep the existing status channel for API error reporting and screen readers.
-    setStatus(message, type);
+    setStatus(text, type);
   }
 
   function choiceName(choice) {
-    if (choice === "none") return "不显示落款";
-    if (choice === "draft") return "高级模板草稿";
+    if (choice === "none") return t("assets.none");
+    if (choice === "draft") return t("assets.draft");
     const catalogItem = catalogItemFromChoice(choice);
     if (catalogItem) return catalogItem.name;
     const userAsset = userAssetFromChoice(choice);
     if (userAsset) return userAsset.name;
-    return "未选择落款";
+    return t("assets.unselected");
   }
 
   function addSelectOption(select, value, label) {
@@ -236,23 +269,23 @@
     }
     for (const asset of state.userAssets.filter((item) => item.pinned)) pinnedChoices.push(assetChoice(asset.id));
     if (activeChoiceExists(state.activeAsset) && !pinnedChoices.includes(state.activeAsset) && state.activeAsset !== "none") {
-      addSelectOption(select, state.activeAsset, `当前 · ${choiceName(state.activeAsset)}`);
+      addSelectOption(select, state.activeAsset, t("assets.current", { name: choiceName(state.activeAsset) }));
     }
     if (pinnedChoices.length) {
       const group = document.createElement("optgroup");
-      group.label = "我的常用";
+      group.label = t("assets.favorites");
       for (const choice of pinnedChoices) addSelectOption(group, choice, choiceName(choice));
       select.append(group);
     }
-    addSelectOption(select, "none", "不显示落款");
-    addSelectOption(select, "manage", "管理常用与上传…");
+    addSelectOption(select, "none", t("assets.none"));
+    addSelectOption(select, "manage", t("assets.manage"));
     select.value = activeChoiceExists(state.activeAsset) ? state.activeAsset : "none";
-    $("#active-asset-note").textContent = `${choiceName(state.activeAsset)} · 本地保存`;
+    $("#active-asset-note").textContent = t("assets.localNote", { name: choiceName(state.activeAsset) });
   }
 
   async function fetchTemplateFile(item) {
     const response = await fetch(`/templates/${encodeURIComponent(item.file)}`);
-    if (!response.ok) throw new Error(`模板读取失败 (${response.status})`);
+    if (!response.ok) throw localError("template.readFailed", { status: response.status });
     return response.text();
   }
 
@@ -341,11 +374,15 @@
     const use = document.createElement("button");
     use.className = "mini-button";
     use.type = "button";
-    use.textContent = state.activeAsset === choice ? "使用中" : "使用";
+    use.textContent = t(state.activeAsset === choice ? "assets.inUse" : "assets.use");
     use.disabled = state.activeAsset === choice;
     use.addEventListener("click", async () => {
-      await applyAssetChoice(choice);
-      $("#asset-library").close();
+      try {
+        await applyAssetChoice(choice);
+        $("#asset-library").close();
+      } catch (error) {
+        setStatus(errorMessage(error, "template.loadFailed"), "error");
+      }
     });
     const pin = document.createElement("button");
     pin.className = "mini-button pin-button";
@@ -353,15 +390,15 @@
     const userAsset = userAssetFromChoice(choice);
     const pinned = userAsset ? userAsset.pinned : preferences.favorites.includes(choice);
     pin.setAttribute("aria-pressed", String(Boolean(pinned)));
-    pin.textContent = pinned ? "★ 常用" : "☆ 加入常用";
-    pin.addEventListener("click", () => togglePinned(choice).catch((error) => setStatus(error.message, "error")));
+    pin.textContent = t(pinned ? "assets.pinned" : "assets.pin");
+    pin.addEventListener("click", () => togglePinned(choice).catch((error) => setStatus(errorMessage(error), "error")));
     actions.append(use, pin);
     if (custom) {
       const remove = document.createElement("button");
       remove.className = "mini-button";
       remove.type = "button";
-      remove.textContent = "删除";
-      remove.addEventListener("click", () => removeUserAsset(choice));
+      remove.textContent = t("assets.delete");
+      remove.addEventListener("click", () => removeUserAsset(choice).catch((error) => setStatus(errorMessage(error), "error")));
       actions.append(remove);
     }
     body.append(title, detail, actions);
@@ -392,7 +429,7 @@
     if (!visible.length) {
       const empty = document.createElement("div");
       empty.className = "empty-assets";
-      empty.textContent = "没有匹配的内置模板。可以上传自己的 Logo。";
+      empty.textContent = t("assets.noMatches");
       builtinGrid.append(empty);
     }
     $("#builtin-assets-count").textContent = `${visible.length} / ${state.catalog.filter((item) => !item.hidden).length}`;
@@ -406,23 +443,22 @@
       mineGrid.append(createAssetCard({
         choice: assetChoice(asset.id),
         name: asset.name,
-        subtitle: asset.kind === "logo" ? `本地 Logo · ${Math.ceil(asset.blob.size / 1024)} KB` : "本地 HTML 模板",
+        subtitle: asset.kind === "logo" ? t("assets.localLogo", { size: Math.ceil(asset.blob.size / 1024) }) : t("assets.localTemplate"),
         image: customAssetImage(asset),
         custom: true
       }));
     }
-    $("#my-assets-count").textContent = `${mine.length} 项`;
+    $("#my-assets-count").textContent = t("assets.itemCount", { count: mine.length });
   }
 
   async function removeUserAsset(choice) {
     const asset = userAssetFromChoice(choice);
-    if (!asset || !window.confirm(`删除“${asset.name}”？只会清除这个浏览器里的副本。`)) return;
+    if (!asset || !window.confirm(t("assets.confirmDelete", { name: asset.name }))) return;
     if (persistentStorageAvailable) {
       try {
         await deleteStoredAsset(asset.id);
       } catch {
-        persistentStorageAvailable = false;
-        setStatus("浏览器没有完成本地删除；当前页面中已移除该素材。", "error");
+        setStatus(message("assets.deleteUnavailable"), "error");
       }
     }
     if (asset.previewUrl) URL.revokeObjectURL(asset.previewUrl);
@@ -435,15 +471,15 @@
   async function saveAdvancedTemplate() {
     const html = $("#template-input").value;
     if (!html.trim()) {
-      setStatus("请先输入模板 HTML。", "error");
+      setStatus(message("template.empty"), "error");
       return;
     }
     if (!html.includes("{T}")) {
-      setStatus("自定义模板必须包含 {T}，否则翻译文字无处显示。", "error");
+      setStatus(message("template.missingToken"), "error");
       return;
     }
     const current = userAssetFromChoice(state.activeAsset);
-    const name = $("#template-name").value.trim() || current?.name || `我的模板 ${state.userAssets.filter((item) => item.kind === "template").length + 1}`;
+    const name = $("#template-name").value.trim() || current?.name || t("template.defaultName", { count: state.userAssets.filter((item) => item.kind === "template").length + 1 });
     const asset = {
       id: current?.kind === "template" ? current.id : `template-${crypto.randomUUID()}`,
       kind: "template",
@@ -455,14 +491,14 @@
     const persisted = await persistAsset(asset);
     replaceUserAsset(asset);
     await applyAssetChoice(assetChoice(asset.id));
-    if (persisted) setStatus(`已把“${name}”保存在这个浏览器。`);
+    if (persisted) setStatus(message("template.saved", { name }));
   }
 
   async function storeUploadedLogo(file) {
     if (!/^image\/(?:png|jpeg|webp)$/i.test(file.type)) {
-      throw new Error("自定义 Logo 仅支持 PNG、JPEG 或 WebP");
+      throw localError("assets.invalidLogo");
     }
-    const name = file.name.replace(/\.[^.]+$/, "") || "我的 Logo";
+    const name = file.name.replace(/\.[^.]+$/, "") || t("assets.defaultLogo");
     const asset = {
       id: `logo-${crypto.randomUUID()}`,
       kind: "logo",
@@ -475,7 +511,7 @@
     replaceUserAsset(asset);
     await applyAssetChoice(assetChoice(asset.id));
     renderAssetLibrary();
-    if (persisted) setStatus(`“${name}”已按原图保存在这个浏览器，不会上传到服务器素材库。`);
+    if (persisted) setStatus(message("assets.logoSaved", { name }));
   }
 
   function persistDraftTemplate(html) {
@@ -487,7 +523,7 @@
 
   async function initializeAssetLibrary() {
     const response = await fetch("/templates/catalog.json");
-    if (!response.ok) throw new Error("无法读取内置模板目录");
+    if (!response.ok) throw localError("assets.catalogUnavailable");
     const catalog = await response.json();
     state.catalog = catalog.templates || [];
     let stored = [];
@@ -495,10 +531,14 @@
       stored = await getStoredAssets();
     } catch {
       persistentStorageAvailable = false;
-      setStatus("当前浏览器不允许持久化素材，自定义项只在本次打开期间可用。", "error");
+      setStatus(message("assets.storageUnavailable"), "error");
     }
     const draft = stored.find((item) => item.id === DRAFT_ID);
-    state.userAssets = stored.filter((item) => item.kind === "logo" || item.kind === "template");
+    state.userAssets = stored.filter((item) => item.kind === "logo" || item.kind === "template").map((item) => {
+      if (item.kind !== "logo" || !(item.imageBytes instanceof ArrayBuffer)) return item;
+      const { imageBytes, mimeType, ...metadata } = item;
+      return { ...metadata, blob: new Blob([imageBytes], { type: mimeType || "image/png" }) };
+    });
     state.draftTemplate = draft?.html || "";
     $("#template-input").value = state.draftTemplate;
     $("#font-size-select").value = String(state.fontSize);
@@ -523,6 +563,7 @@
   }
 
   function authorNode(author, compact = false) {
+    const authorName = author.screenName === "unknown" && author.name === "未知用户" ? t("post.unknownUser") : author.name;
     const wrapper = document.createElement("div");
     wrapper.className = compact ? "quote-author" : "tweet-header";
     const avatar = document.createElement("img");
@@ -534,7 +575,7 @@
     if (compact) {
       wrapper.append(avatar);
       const name = document.createElement("strong");
-      name.textContent = author.name;
+      name.textContent = authorName;
       const handle = document.createElement("span");
       handle.textContent = `@${author.screenName}`;
       wrapper.append(name, handle);
@@ -546,13 +587,13 @@
     const name = document.createElement("div");
     name.className = "tweet-name";
     const nameText = document.createElement("span");
-    nameText.textContent = author.name;
+    nameText.textContent = authorName;
     name.append(nameText);
     if (author.verified) {
       const verified = document.createElement("span");
       verified.className = "verified";
       verified.textContent = "✓";
-      verified.setAttribute("aria-label", "已认证");
+      verified.setAttribute("aria-label", t("post.verified"));
       name.append(verified);
     }
     const handle = document.createElement("div");
@@ -568,7 +609,7 @@
 
   function formatCount(value) {
     const number = Number(value || 0);
-    return new Intl.NumberFormat("zh-CN", { notation: number >= 10000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(number);
+    return new Intl.NumberFormat(i18n.getLocale(), { notation: number >= 10000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(number);
   }
 
   function mediaNode(items) {
@@ -580,7 +621,7 @@
       frame.className = "media-item";
       const image = document.createElement("img");
       image.src = proxyUrl(item.url);
-      image.alt = item.alt || "推文媒体";
+      image.alt = item.alt || t("post.media");
       image.crossOrigin = "anonymous";
       frame.append(image);
       if (item.type === "video" || item.type === "gif") {
@@ -616,7 +657,7 @@
     if (tweet.replyingTo) {
       const replying = document.createElement("div");
       replying.className = "replying";
-      replying.append("回复 ");
+      replying.append(t("post.replyingTo"));
       const who = document.createElement("span");
       who.textContent = `@${tweet.replyingTo}`;
       replying.append(who);
@@ -634,13 +675,17 @@
     meta.className = "tweet-meta";
     const date = tweet.createdAt ? new Date(tweet.createdAt) : null;
     meta.textContent = date && !Number.isNaN(date.valueOf())
-      ? new Intl.DateTimeFormat("zh-CN", { timeZone: state.timeZone, year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date)
+      ? new Intl.DateTimeFormat(i18n.getLocale(), { timeZone: state.timeZone, year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date)
       : "";
     card.append(meta);
     if (state.showCounts) {
       const counts = document.createElement("div");
       counts.className = "tweet-counts";
-      counts.innerHTML = `<span>${formatCount(tweet.counts.replies)} 回复</span><span>${formatCount(tweet.counts.reposts)} 转发</span><span>${formatCount(tweet.counts.likes)} 喜欢</span>`;
+      for (const key of ["replies", "reposts", "likes"]) {
+        const count = document.createElement("span");
+        count.textContent = t(`post.${key}`, { count: formatCount(tweet.counts[key]) });
+        counts.append(count);
+      }
       card.append(counts);
     }
     return card;
@@ -702,7 +747,7 @@
       const image = document.createElement("img");
       image.className = "translation-logo";
       image.src = logo;
-      image.alt = "翻译组 Logo";
+      image.alt = t("post.translationLogo");
       block.append(image);
     }
     const translation = document.createElement("div");
@@ -726,11 +771,11 @@
       if (translation) stack.append(translationNode(translation, index));
     });
     capture.append(stack);
-    $("#preview-hint").textContent = `${state.included.filter(Boolean).length} 条推文`;
+    $("#preview-hint").textContent = t("preview.postCount", { count: state.included.filter(Boolean).length });
     if (!state.included.some(Boolean)) {
       const message = document.createElement("div");
       message.className = "empty-preview";
-      message.textContent = "还没有选中推文，请回到编辑内容，勾选要出图的推文。";
+      message.textContent = t("preview.noSelection");
       capture.append(message);
     }
     updateWorkflow();
@@ -748,7 +793,7 @@
       const include = document.createElement("input");
       include.type = "checkbox";
       include.checked = state.included[index];
-      include.setAttribute("aria-label", `包含 @${tweet.author.screenName} 的第 ${index + 1} 条推文`);
+      include.setAttribute("aria-label", t("editor.include", { handle: tweet.author.screenName, index: index + 1 }));
       const originalWrap = document.createElement("div");
       originalWrap.className = "original-wrap";
       const originalMeta = document.createElement("div");
@@ -760,14 +805,13 @@
       originalWrap.append(originalMeta, original);
       const label = document.createElement("span");
       label.className = `relation-label ${tweet.relation || "context"}`;
-      if (state.data.mode === "timeline" && index === 0) label.textContent = "最新";
-      else label.textContent = ({ target: "目标", reply: "回复", timeline: "主页", context: "上下文" })[tweet.relation] || "上下文";
+      label.textContent = relationLabel(tweet, index);
       header.append(include, originalWrap, label);
       const textarea = document.createElement("textarea");
-      textarea.placeholder = "输入中文翻译（留空则只显示原文）";
+      textarea.placeholder = t("editor.translationPlaceholder");
       textarea.value = state.translations[index] || "";
       textarea.dataset.index = index;
-      textarea.setAttribute("aria-label", `翻译 @${tweet.author.screenName} 的第 ${index + 1} 条推文`);
+      textarea.setAttribute("aria-label", t("editor.translate", { handle: tweet.author.screenName, index: index + 1 }));
       textarea.disabled = !state.included[index];
       include.addEventListener("change", () => {
         state.included[index] = include.checked;
@@ -782,6 +826,46 @@
       item.append(header, textarea);
       list.append(item);
     });
+  }
+
+  function relationLabel(tweet, index) {
+    if (state.data.mode === "timeline" && index === 0) return t("editor.latest");
+    const relation = ["target", "reply", "timeline", "context"].includes(tweet.relation) ? tweet.relation : "context";
+    return t(`editor.${relation}`);
+  }
+
+  function localizeEditor() {
+    if (!state.data) return;
+    // Update labels in place: keep textarea values, selection, focus and size.
+    $("#translation-list").querySelectorAll(".translation-item").forEach((item, index) => {
+      const tweet = state.data.tweets[index];
+      const params = { handle: tweet.author.screenName, index: index + 1 };
+      item.querySelector('input[type="checkbox"]').setAttribute("aria-label", t("editor.include", params));
+      const textarea = item.querySelector("textarea");
+      textarea.setAttribute("aria-label", t("editor.translate", params));
+      textarea.placeholder = t("editor.translationPlaceholder");
+      item.querySelector(".relation-label").textContent = relationLabel(tweet, index);
+    });
+    const replies = state.data.tweets.filter((tweet) => tweet.relation === "reply").length;
+    $("#tweet-count").textContent = t(replies ? "editor.countWithReplies" : "editor.count", { count: state.data.tweets.length, replies });
+    $("#recommended-selection").textContent = t(state.data.mode === "timeline" ? "editor.firstThree" : "editor.targetOnly");
+  }
+
+  function localizeInterface() {
+    $("#query-button").textContent = t(queryController ? "query.loading" : "query.button");
+    $("#download-button").textContent = t(exporting ? "export.generating" : "export.download");
+    $("#show-preview-button").textContent = t(document.body.dataset.view === "preview" ? "nav.back" : "nav.preview");
+    localizeEditor();
+    refreshAssetSelect();
+    if ($("#asset-library").open) renderAssetLibrary();
+    writeStatus($("#status"), statusState);
+    writeStatus($("#export-status"), exportStatusState);
+    if (state.data) renderPreview();
+    else {
+      i18n.apply($("#capture"));
+      $("#preview-hint").textContent = t("preview.noPosts");
+      fitPreview();
+    }
   }
 
   function recommendedSelection(data) {
@@ -806,9 +890,7 @@
     state.included = recommendedSelection(data);
     buildEditor();
     renderPreview();
-    const replyCount = data.tweets.filter((tweet) => tweet.relation === "reply").length;
-    $("#tweet-count").textContent = replyCount ? `${data.tweets.length} 条 · ${replyCount} 回复` : `${data.tweets.length} 条`;
-    $("#recommended-selection").textContent = data.mode === "timeline" ? "前 3 条" : "仅目标";
+    localizeEditor();
     $("#translation-panel").hidden = false;
     $("#style-panel").hidden = false;
     viewScroll.preview = 0;
@@ -824,10 +906,10 @@
     updateWorkflow();
     const button = $("#query-button");
     button.disabled = true;
-    button.textContent = "读取中…";
+    button.textContent = t("query.loading");
     $("#tweet-form").setAttribute("aria-busy", "true");
     $("#tweet-url").blur();
-    setStatus("正在读取推文…");
+    setStatus(message("query.reading"));
     try {
       const response = await fetch("/api/tweet", {
         method: "POST",
@@ -836,18 +918,18 @@
         signal: controller.signal
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error?.message || "读取失败");
+      if (!response.ok) throw apiError(payload?.error);
       if (controller.signal.aborted) return;
       loadData(payload);
       setStatus("");
     } catch (error) {
       if (controller.signal.aborted) return;
-      setStatus(error.message || "无法读取这个主页或推文", "error");
+      setStatus(errorMessage(error, "error.queryUnavailable"), "error");
     } finally {
       if (queryController === controller) {
         queryController = null;
         button.disabled = false;
-        button.textContent = "查询";
+        button.textContent = t("query.button");
         $("#tweet-form").removeAttribute("aria-busy");
         updateWorkflow();
       }
@@ -875,12 +957,12 @@
     for (let attempt = 0; attempt < 240; attempt += 1) {
       const response = await fetch(`/api/get_task=${encodeURIComponent(taskId)}`, { cache: "no-store" });
       const task = await response.json();
-      if (!response.ok) throw new Error(task?.error?.message || "无法查询出图任务");
+      if (!response.ok) throw apiError(task?.error);
       if (task.state === "SUCCESS") return task.result;
-      if (task.state === "FAILURE") throw new Error(task.error || "服务端生成图片失败");
+      if (task.state === "FAILURE") throw apiError({ message: task.error, code: task.code });
       await delay(250);
     }
-    throw new Error("图片生成超时，请稍后重试");
+    throw localError("export.timeout");
   }
 
   async function downloadPng() {
@@ -891,15 +973,15 @@
       ? [{ id: tweet.id, translation: state.translations[index] || "" }]
       : []);
     if (!selection.length) {
-      setStatus("请先勾选至少一条要出图的推文。", "error");
+      setStatus(message("export.selectFirst"), "error");
       return;
     }
     button.disabled = true;
     exporting = true;
     updateWorkflow();
-    button.textContent = "正在生成…";
+    button.textContent = t("export.generating");
     try {
-      setExportStatus("正在生成高清 PNG，请稍候…");
+      setExportStatus(message("export.progress"));
       const created = await fetch("/api/render", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -912,24 +994,25 @@
           logo: state.logo,
           customLogo: state.logo === "custom" ? state.customLogo : "",
           fontSize: state.fontSize,
-          timeZone: state.timeZone
+          timeZone: state.timeZone,
+          language: i18n.getLanguage()
         })
       });
       const payload = await created.json();
-      if (!created.ok) throw new Error(payload?.error?.message || "无法创建出图任务");
+      if (!created.ok) throw apiError(payload?.error);
       const filename = await waitForTask(payload.task_id);
       const imageResponse = await fetch(`/cache/${encodeURIComponent(filename)}.png`, { cache: "no-store" });
-      if (!imageResponse.ok) throw new Error("生成的图片暂时无法下载");
+      if (!imageResponse.ok) throw localError("export.downloadFailed");
       const blob = await imageResponse.blob();
       const source = exportData.query?.screenName || exportData.id;
       window.saveAs(blob, `TweetToaster-${source}-${exportData.id}.png`);
       setExportStatus("");
     } catch (error) {
-      setExportStatus(`图片生成失败：${error.message}`, "error");
+      setExportStatus(errorMessage(error, "export.renderFailed", "export.failure"), "error");
     } finally {
       exporting = false;
       updateWorkflow();
-      button.textContent = "下载 PNG";
+      button.textContent = t("export.download");
     }
   }
 
@@ -953,6 +1036,7 @@
   async function renderForBot(payload) {
     window.__tweetToasterReady = false;
     document.body.classList.add("render-mode");
+    i18n.setLanguage(payload.language || "zh", { persist: false, emit: false });
     state.data = payload.data;
     // Browser downloads send an explicit selection and must match the editor preview.
     // Only the legacy Bot translation string keeps the old per-reply variant behavior.
@@ -969,11 +1053,11 @@
       const selected = new Map(payload.selection.map((item) => [String(item.id), String(item.translation || "")]));
       const available = new Set(payload.data.tweets.map((tweet) => tweet.id));
       if ([...selected.keys()].some((id) => !available.has(id))) {
-        throw new Error("部分选中的推文已不可用，未生成图片；请先复制保存翻译，再重新查询");
+        throw localError("export.selectionMissing", {}, "SELECTION_NOT_FOUND");
       }
       state.translations = payload.data.tweets.map((tweet) => selected.get(tweet.id) || "");
       state.included = payload.data.tweets.map((tweet) => selected.has(tweet.id));
-      if (!state.included.some(Boolean)) throw new Error("选中的推文已不在当前公开数据中，请重新查询");
+      if (!state.included.some(Boolean)) throw localError("export.selectionUnavailable", {}, "SELECTION_NOT_FOUND");
     } else {
       state.translations = parseBotTranslations(payload.translate, payload.data.focalIndex, payload.data.tweets.length);
       state.included = payload.data.tweets.map((tweet, index) => tweet.focal || index <= payload.data.focalIndex);
@@ -990,15 +1074,16 @@
     queryController?.abort();
     queryController = null;
     $("#query-button").disabled = false;
-    $("#query-button").textContent = "查询";
+    $("#query-button").textContent = t("query.button");
     $("#tweet-form").removeAttribute("aria-busy");
     state.data = null;
     state.translations = [];
     state.included = [];
     $("#capture").replaceChildren(emptyPreview.cloneNode(true));
+    i18n.apply($("#capture"));
     $("#translation-list").replaceChildren();
     $("#translation-panel").hidden = true;
-    $("#preview-hint").textContent = "暂无推文";
+    $("#preview-hint").textContent = t("preview.noPosts");
     $("#tweet-url").value = "";
     updateWorkflow();
     setView("edit");
@@ -1006,16 +1091,15 @@
     $(".settings-scroll").scrollTop = 0;
     window.scrollTo(0, 0);
     $("#tweet-url").focus({ preventScroll: true });
-    $("#export-status").hidden = true;
-    setStatus("");
+    setExportStatus("");
   }
 
   async function loadTemplateParam(value) {
     try {
       const response = await fetch(value);
-      if (!response.ok) throw new Error(`模板读取失败 (${response.status})`);
+      if (!response.ok) throw localError("template.readFailed", { status: response.status });
       const template = await response.text();
-      if (new Blob([template]).size > 64 * 1024) throw new Error("模板文件过大");
+      if (new Blob([template]).size > 64 * 1024) throw localError("template.tooLarge");
       state.template = template;
       state.draftTemplate = template;
       state.activeAsset = "draft";
@@ -1027,12 +1111,25 @@
       refreshAssetSelect();
       return true;
     } catch (error) {
-      setStatus(error.message || "无法读取模板", "error");
+      setStatus(errorMessage(error, "template.loadFailed"), "error");
       return false;
     }
   }
 
   function bind() {
+    const languageSwitch = $("#language-switch");
+    languageSwitch.addEventListener("click", (event) => {
+      const option = event.target.closest("button[data-language]");
+      if (option && !exporting) i18n.setLanguage(option.dataset.language);
+    });
+    languageSwitch.addEventListener("keydown", (event) => {
+      if (exporting || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const language = event.key === "Home" ? "en" : event.key === "End" ? "zh" : i18n.getLanguage() === "en" ? "zh" : "en";
+      i18n.setLanguage(language);
+      languageSwitch.querySelector(`[data-language="${language}"]`).focus();
+    });
+    window.addEventListener("tweettoaster:languagechange", localizeInterface);
     $("#tweet-form").addEventListener("submit", (event) => {
       event.preventDefault();
       queryTweet($("#tweet-url").value);
@@ -1047,7 +1144,7 @@
       try {
         await applyAssetChoice(event.target.value);
       } catch (error) {
-        setStatus(error.message || "无法读取这个模板", "error");
+        setStatus(errorMessage(error, "template.loadFailed"), "error");
       }
     });
     $("#custom-logo").addEventListener("change", async (event) => {
@@ -1056,7 +1153,7 @@
       try {
         await storeUploadedLogo(file);
       } catch (error) {
-        setStatus(error.message || "无法保存自定义 Logo", "error");
+        setStatus(errorMessage(error, "assets.logoSaveFailed"), "error");
       } finally {
         event.target.value = "";
       }
@@ -1086,10 +1183,10 @@
       persistDraftTemplate(event.target.value);
       renderPreview();
     });
-    $("#save-template").addEventListener("click", () => saveAdvancedTemplate().catch((error) => setStatus(error.message, "error")));
+    $("#save-template").addEventListener("click", () => saveAdvancedTemplate().catch((error) => setStatus(errorMessage(error), "error")));
     $("#clear-template").addEventListener("click", () => {
       applyAssetChoice(preferences.favorites.find((choice) => catalogItemFromChoice(choice)) || "none")
-        .catch((error) => setStatus(error.message, "error"));
+        .catch((error) => setStatus(errorMessage(error), "error"));
     });
     $("#manage-assets").addEventListener("click", () => {
       $("#asset-search").value = "";
@@ -1129,6 +1226,7 @@
   document.addEventListener("DOMContentLoaded", async () => {
     emptyPreview = $("#capture .empty-preview").cloneNode(true);
     bind();
+    localizeInterface();
     const params = new URLSearchParams(location.search);
     if (params.get("render") === "1") {
       document.body.classList.add("render-mode");
@@ -1140,7 +1238,7 @@
       state.logo = "official";
       state.activeAsset = "none";
       refreshAssetSelect();
-      setStatus(error.message || "模板库暂时不可用，仍可继续查询和出图。", "error");
+      setStatus(errorMessage(error, "assets.libraryUnavailable"), "error");
     }
     if (params.get("template")) await loadTemplateParam(params.get("template"));
     if (params.get("tweet")) {

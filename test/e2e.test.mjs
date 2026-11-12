@@ -27,7 +27,7 @@ test("browser editor and bot renderer share the working export surface", { timeo
   renderer = new BotRenderer({ origin, cacheDir, executablePath: chromePath });
   const browser = await chromium.launch({ headless: true, executablePath: chromePath });
   try {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, locale: "zh-CN" });
     await page.goto(origin, { waitUntil: "networkidle" });
     await page.locator("#logo-select option").first().waitFor({ state: "attached" });
     const initialOptions = await page.locator("#logo-select option").allTextContents();
@@ -54,11 +54,11 @@ test("browser editor and bot renderer share the working export surface", { timeo
 
     await page.getByLabel("X 主页、@用户名或推文链接").fill("minatoaqua");
     await page.getByRole("button", { name: "查询" }).click();
-    const translation = page.getByPlaceholder("输入中文翻译（留空则只显示原文）").first();
+    const translation = page.getByPlaceholder("输入翻译（留空则只显示原文）").first();
     await translation.waitFor();
     await translation.fill("虽然麻烦不断，直播还是开始了！");
     await page.getByLabel("包含 @fan 的第 2 条推文").check();
-    await page.getByPlaceholder("输入中文翻译（留空则只显示原文）").nth(1).fill("回复也可以单独翻译。");
+    await page.getByPlaceholder("输入翻译（留空则只显示原文）").nth(1).fill("回复也可以单独翻译。");
     await assert.doesNotReject(() => page.locator("#capture .translation-logo").first().waitFor());
     assert.match(await page.locator("#capture").innerText(), /直播还是开始了/);
     assert.match(await page.locator("#capture").innerText(), /回复也可以单独翻译/);
@@ -102,7 +102,7 @@ test("browser editor and bot renderer share the working export surface", { timeo
     await page.locator("#logo-select").selectOption("builtin:matsuri");
     await page.getByLabel("X 主页、@用户名或推文链接").fill("minatoaqua");
     await page.getByRole("button", { name: "查询" }).click();
-    const restoredTranslation = page.getByPlaceholder("输入中文翻译（留空则只显示原文）").first();
+    const restoredTranslation = page.getByPlaceholder("输入翻译（留空则只显示原文）").first();
     await restoredTranslation.waitFor();
     await restoredTranslation.fill("虽然麻烦不断，直播还是开始了！");
     const templatedTranslation = page.locator("#capture .template-translation-text").first();

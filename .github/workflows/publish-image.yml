@@ -41,6 +41,7 @@ jobs:
       - name: Run tests and production audit
         run: |
           pnpm test
+          pnpm test:webkit
           pnpm audit --prod
 
   build-and-publish:

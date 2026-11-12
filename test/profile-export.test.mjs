@@ -45,7 +45,7 @@ test("recovered profile exports the exact browser preview after the upstream cha
   const browserServer = await chromium.launchServer({ headless: true, executablePath, host: "127.0.0.1", timeout: 10000 });
   try {
     const browser = await chromium.connect(browserServer.wsEndpoint(), { timeout: 10000 });
-    const page = await browser.newPage({ viewport: { width: 400, height: 780 }, timezoneId: "Asia/Shanghai", isMobile: true });
+    const page = await browser.newPage({ viewport: { width: 400, height: 780 }, timezoneId: "Asia/Shanghai", locale: "zh-CN", isMobile: true });
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.goto(origin, { waitUntil: "networkidle" });

@@ -20,7 +20,7 @@ test("compact homepage keeps useful instructions and works through query and res
   const browser = await chromium.launch({ headless: true, executablePath: chromePath });
   try {
     for (const width of [320, 1280]) {
-      const page = await browser.newPage({ viewport: { width, height: 780 } });
+      const page = await browser.newPage({ viewport: { width, height: 780 }, locale: "zh-CN" });
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(`http://127.0.0.1:${server.address().port}`, { waitUntil: "networkidle" });
