@@ -4,34 +4,39 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f8fa">
-  <title>烤推机 · TweetToaster</title>
+  <title>TweetToaster</title>
   <link rel="icon" type="image/png" href="img/brand-logo.png">
   <link rel="stylesheet" href="index.css">
   <script defer src="FileSaver.min.js"></script>
+  <script defer src="i18n.js"></script>
   <script defer src="api3.js"></script>
 </head>
 <body data-view="edit">
   <header class="app-header">
     <div class="brand">
-      <img class="brand-mark" src="img/brand-logo.png" alt="夏色祭工坊">
-      <h1>烤推机 <span>TweetToaster</span></h1>
+      <img class="brand-mark" src="img/brand-logo.png" alt="TweetToaster">
+      <h1>TweetToaster</h1>
+    </div>
+    <div id="language-switch" class="language-switch" role="radiogroup" aria-label="Language / 语言" data-language="zh">
+      <button type="button" role="radio" data-language="en" aria-checked="false" tabindex="-1" lang="en">EN</button>
+      <button type="button" role="radio" data-language="zh" aria-checked="true" tabindex="0" lang="zh-CN">中文</button>
     </div>
   </header>
-  <nav class="view-switch" aria-label="工作区视图" role="tablist">
-    <button id="edit-view-button" type="button" role="tab" aria-controls="editor-view" aria-selected="true">编辑内容</button>
-    <button id="preview-view-button" type="button" role="tab" aria-controls="preview-pane" aria-selected="false" tabindex="-1" disabled>预览图片</button>
+  <nav class="view-switch" aria-label="工作区视图" data-i18n-attr="aria-label:nav.workspace" role="tablist">
+    <button id="edit-view-button" type="button" role="tab" aria-controls="editor-view" aria-selected="true" data-i18n="nav.edit">编辑内容</button>
+    <button id="preview-view-button" type="button" role="tab" aria-controls="preview-pane" aria-selected="false" tabindex="-1" disabled data-i18n="nav.preview">预览图片</button>
   </nav>
   <main class="app-shell">
-    <section class="settings-pane" id="editor-view" aria-label="编辑内容">
+    <section class="settings-pane" id="editor-view" aria-label="编辑内容" data-i18n-attr="aria-label:nav.edit">
       <div class="settings-scroll">
         <form id="tweet-form" class="query-form">
-          <label for="tweet-url">X 主页、@用户名或推文链接</label>
+          <label for="tweet-url" data-i18n="query.label">X 主页、@用户名或推文链接</label>
           <div class="query-row">
             <input id="tweet-url" name="url" type="text" inputmode="url"
-              placeholder="@用户名或 x.com 链接" autocomplete="off" autocapitalize="off" spellcheck="false" required>
-            <button class="primary-button" id="query-button" type="submit">查询</button>
+              placeholder="@用户名或 x.com 链接" data-i18n-attr="placeholder:query.placeholder" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+            <button class="primary-button" id="query-button" type="submit" data-i18n="query.button">查询</button>
           </div>
-          <p class="field-help">主页仅显示本人近期推文；链接可省略 https://。</p>
+          <p class="field-help" data-i18n="query.help">主页仅显示本人近期推文；链接可省略 https://。</p>
         </form>
 
         <div id="status" class="status" hidden role="status" aria-live="polite"></div>
@@ -39,15 +44,15 @@
         <section class="panel" id="translation-panel" hidden>
           <div class="panel-heading">
             <div>
-              <h2>推文与翻译</h2>
-              <p>勾选要出图的推文或回复；翻译可留空。</p>
+              <h2 data-i18n="editor.title">推文与翻译</h2>
+              <p data-i18n="editor.help">勾选要出图的推文或回复；翻译可留空。</p>
             </div>
             <span class="count-badge" id="tweet-count"></span>
           </div>
-          <div class="selection-actions" aria-label="批量选择">
+          <div class="selection-actions" aria-label="批量选择" data-i18n-attr="aria-label:editor.selection">
             <button class="mini-button" id="recommended-selection" type="button">仅目标</button>
-            <button class="mini-button" id="select-all" type="button">全选</button>
-            <button class="mini-button" id="select-none" type="button">清空</button>
+            <button class="mini-button" id="select-all" type="button" data-i18n="editor.all">全选</button>
+            <button class="mini-button" id="select-none" type="button" data-i18n="editor.none">清空</button>
           </div>
           <div id="translation-list" class="translation-list"></div>
         </section>
@@ -55,57 +60,57 @@
         <section class="panel" id="style-panel">
           <div class="panel-heading">
             <div>
-              <h2>落款与模板</h2>
+              <h2 data-i18n="style.title">落款与模板</h2>
             </div>
           </div>
           <div class="field-grid">
             <label>
-              常用模板 / Logo
+              <span data-i18n="style.template">常用模板 / Logo</span>
               <select id="logo-select">
-                <option>正在读取模板库…</option>
+                <option data-i18n="assets.loading">正在读取模板库…</option>
               </select>
             </label>
             <label>
-              翻译字号
+              <span data-i18n="style.fontSize">翻译字号</span>
               <select id="font-size-select">
-                <option value="26">标准</option>
-                <option value="23">紧凑</option>
-                <option value="30">醒目</option>
+                <option value="26" data-i18n="style.standard">标准</option>
+                <option value="23" data-i18n="style.compact">紧凑</option>
+                <option value="30" data-i18n="style.large">醒目</option>
               </select>
             </label>
           </div>
           <div class="asset-actions">
-            <button class="mini-button" id="manage-assets" type="button">管理常用与上传…</button>
+            <button class="mini-button" id="manage-assets" type="button" data-i18n="assets.manage">管理常用与上传…</button>
             <span id="active-asset-note">保存在此浏览器</span>
           </div>
           <input id="custom-logo" type="file" accept="image/png,image/jpeg,image/webp" hidden>
           <label class="check-row">
             <input id="show-counts" type="checkbox" checked>
-            <span>显示回复、转发和点赞数</span>
+            <span data-i18n="style.showCounts">显示回复、转发和点赞数</span>
           </label>
           <details class="template-details">
-            <summary>高级 HTML 模板</summary>
-            <p><code>{T}</code> 为翻译内容；脚本等不安全内容会被移除。</p>
+            <summary data-i18n="template.advanced">高级 HTML 模板</summary>
+            <p><code>{T}</code><span data-i18n="template.help"> 为翻译内容；脚本等不安全内容会被移除。</span></p>
             <textarea id="template-input" rows="7" spellcheck="false"
               placeholder="<div class=&quot;my-template&quot;>{T}</div>"></textarea>
             <div class="template-save-row">
-              <input id="template-name" type="text" maxlength="60" placeholder="模板名称">
-              <button class="mini-button" id="save-template" type="button">保存到我的模板</button>
-              <button class="mini-button" id="clear-template" type="button">停用自定义 HTML</button>
+              <input id="template-name" type="text" maxlength="60" placeholder="模板名称" data-i18n-attr="placeholder:template.name">
+              <button class="mini-button" id="save-template" type="button" data-i18n="template.save">保存到我的模板</button>
+              <button class="mini-button" id="clear-template" type="button" data-i18n="template.disable">停用自定义 HTML</button>
             </div>
-            <p>草稿和模板仅保存在此浏览器。</p>
+            <p data-i18n="template.privacy">草稿和模板仅保存在此浏览器。</p>
           </details>
         </section>
 
-        <footer>
+        <footer data-i18n="footer.privacy">
           数据仅用于出图，PNG 缓存自动清理。
         </footer>
       </div>
     </section>
-    <section class="preview-pane" id="preview-pane" aria-label="图片预览">
+    <section class="preview-pane" id="preview-pane" aria-label="图片预览" data-i18n-attr="aria-label:preview.title">
       <div class="preview-toolbar">
         <div>
-          <strong>图片预览</strong>
+          <strong data-i18n="preview.title">图片预览</strong>
           <span id="preview-hint">暂无推文</span>
         </div>
         <span class="preview-quality">1280px PNG</span>
@@ -114,8 +119,8 @@
         <div id="capture-frame" class="capture-frame">
           <div id="capture" class="capture" aria-live="polite">
             <div class="empty-preview">
-              <h2>暂无预览</h2>
-              <p>输入用户名或推文链接开始查询。</p>
+              <h2 data-i18n="preview.emptyTitle">暂无预览</h2>
+              <p data-i18n="preview.emptyHelp">输入用户名或推文链接开始查询。</p>
             </div>
           </div>
         </div>
@@ -123,7 +128,7 @@
     </section>
     <div class="action-bar" id="action-bar" hidden>
       <div id="export-status" class="status" hidden role="status" aria-live="polite"></div>
-      <button class="secondary-button" id="reset-button" type="button">重新开始</button>
+      <button class="secondary-button" id="reset-button" type="button" data-i18n="export.reset">重新开始</button>
       <button class="secondary-button" id="show-preview-button" type="button">预览图片</button>
       <button class="primary-button download-button" id="download-button" type="button">下载 PNG</button>
     </div>
@@ -133,26 +138,26 @@
     <div class="library-shell">
       <header class="library-header">
         <div>
-          <h2 id="asset-library-title">落款素材库</h2>
-          <p>加入常用后显示在下拉菜单。</p>
+          <h2 id="asset-library-title" data-i18n="library.title">落款素材库</h2>
+          <p data-i18n="library.help">加入常用后显示在下拉菜单。</p>
         </div>
-        <button class="ghost-button" id="close-library" type="button" aria-label="关闭素材库">完成</button>
+        <button class="ghost-button" id="close-library" type="button" aria-label="关闭素材库" data-i18n="library.done" data-i18n-attr="aria-label:library.close">完成</button>
       </header>
       <div class="library-toolbar">
-        <input id="asset-search" type="search" placeholder="搜索角色、字幕组或模板名称">
-        <button class="secondary-button" id="upload-logo" type="button">上传 Logo</button>
+        <input id="asset-search" type="search" placeholder="搜索角色、字幕组或模板名称" data-i18n-attr="placeholder:library.search;aria-label:library.search">
+        <button class="secondary-button" id="upload-logo" type="button" data-i18n="library.upload">上传 Logo</button>
       </div>
-      <p class="library-privacy">Logo 原图保存在此浏览器，不限 50 KB、保留原尺寸。下载时临时上传用于出图，不在服务器保存素材副本。</p>
+      <p class="library-privacy" data-i18n="library.privacy">Logo 原图保存在此浏览器，不限 50 KB、保留原尺寸。下载时临时上传用于出图，不在服务器保存素材副本。</p>
       <section id="my-assets-section" hidden>
         <div class="library-section-title">
-          <h3>我的素材</h3>
+          <h3 data-i18n="library.mine">我的素材</h3>
           <span id="my-assets-count"></span>
         </div>
         <div class="asset-grid" id="my-assets-grid"></div>
       </section>
       <section>
         <div class="library-section-title">
-          <h3>内置模板</h3>
+          <h3 data-i18n="library.builtin">内置模板</h3>
           <span id="builtin-assets-count"></span>
         </div>
         <div class="asset-grid" id="builtin-assets-grid"></div>

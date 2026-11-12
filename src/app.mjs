@@ -23,7 +23,7 @@ const MIME = new Map([
 ]);
 
 const SECURITY_HEADERS = {
-  "content-security-policy": "default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'",
+  "content-security-policy": "default-src 'self'; img-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'",
   "referrer-policy": "no-referrer",
   "x-content-type-options": "nosniff",
   "x-frame-options": "SAMEORIGIN"
@@ -149,8 +149,16 @@ function validateAutoEvent(event) {
     customLogo: typeof event.customLogo === "string" ? event.customLogo : "",
     fontSize: Number(event.fontSize) || 26,
     timeZone: validateTimeZone(event.timeZone),
+    language: validateLanguage(event.language),
     selection: validateSelection(event.selection, { optional: true })
   };
+}
+
+function validateLanguage(value) {
+  // Existing Bot clients keep their original Chinese card labels and dates.
+  if (value == null) return "zh";
+  if (value === "zh" || value === "en") return value;
+  throw new TweetProviderError("界面语言无效，请选择 EN 或中文", { status: 400, code: "INVALID_LANGUAGE" });
 }
 
 function validateTimeZone(value) {

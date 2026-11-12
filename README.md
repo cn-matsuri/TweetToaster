@@ -1,5 +1,7 @@
 # 夏色祭工坊 TweetToaster 烤推机
 
+[中文](README.md) | [English](README.en.md)
+
 <p align="center">
   <img src="Matsuri_translation/frontend/img/brand-logo.png" width="112" alt="夏色祭工坊">
 </p>
@@ -18,6 +20,7 @@
 
 ## 功能
 
+- 界面支持 EN / 中文切换，并在当前浏览器记住语言选择；不会改写翻译内容、Logo 或模板素材
 - 手机首页直接输入链接；编辑与预览一键切换，桌面同时对照两栏，长图按屏幕宽度缩放而不改变下载尺寸
 - 接受 `7216_2nd`、`@7216_2nd`、`x.com/7216_2nd` 等主页输入
 - 接受带或不带 `https://` 的 `x.com/.../status/...`、`twitter.com/.../status/...` 单推链接

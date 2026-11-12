@@ -56,7 +56,7 @@ test("downloaded PNG preserves the preview timezone across UTC, date boundaries 
       ["Asia/Kathmandu", ["2026年1月2日 02:01", "2026年7月2日 02:01"]],
       ["UTC", ["2026年1月1日 20:16", "2026年7月1日 20:16"]]
     ]) {
-      const page = await browser.newPage({ timezoneId: timeZone });
+      const page = await browser.newPage({ timezoneId: timeZone, locale: "zh-CN" });
       await page.goto(origin, { waitUntil: "networkidle" });
       await page.getByLabel("X 主页、@用户名或推文链接").fill("minatoaqua");
       await page.getByRole("button", { name: "查询", exact: true }).click();

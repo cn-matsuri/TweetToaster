@@ -12,6 +12,7 @@
     "templates:sync": "node scripts/import-toast-templates.mjs",
     "test": "node --test --test-concurrency=2 test/*.test.mjs",
     "test:e2e": "node --test test/e2e.test.mjs",
+    "test:webkit": "node --test --test-concurrency=1 test/webkit.mjs",
     "test:live": "node --test test/live-provider.mjs"
   },
   "dependencies": {
