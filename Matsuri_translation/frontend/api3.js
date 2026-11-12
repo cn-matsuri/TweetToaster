@@ -78,7 +78,6 @@
   function updateWorkflow() {
     const loaded = Boolean(state.data);
     document.body.classList.toggle("has-tweets", loaded);
-    $("#welcome-guide").hidden = loaded;
     $("#preview-view-button").disabled = !loaded;
     $("#action-bar").hidden = !loaded;
     $("#download-button").disabled = exporting || Boolean(queryController) || !state.included.some(Boolean);
@@ -727,7 +726,7 @@
       if (translation) stack.append(translationNode(translation, index));
     });
     capture.append(stack);
-    $("#preview-hint").textContent = `${state.included.filter(Boolean).length} 条推文 · 640px`;
+    $("#preview-hint").textContent = `${state.included.filter(Boolean).length} 条推文`;
     if (!state.included.some(Boolean)) {
       const message = document.createElement("div");
       message.className = "empty-preview";
@@ -828,7 +827,7 @@
     button.textContent = "读取中…";
     $("#tweet-form").setAttribute("aria-busy", "true");
     $("#tweet-url").blur();
-    setStatus("正在读取公开主页、上下文和回复，这通常只需要几秒钟。");
+    setStatus("正在读取推文…");
     try {
       const response = await fetch("/api/tweet", {
         method: "POST",
@@ -906,6 +905,7 @@
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           tweet: state.data.query?.canonicalUrl || state.data.canonicalUrl,
+          snapshotId: state.data.snapshotId,
           selection,
           template: state.template,
           noLikes: !state.showCounts,
@@ -967,6 +967,10 @@
     state.template = payload.template || "";
     if (Array.isArray(payload.selection)) {
       const selected = new Map(payload.selection.map((item) => [String(item.id), String(item.translation || "")]));
+      const available = new Set(payload.data.tweets.map((tweet) => tweet.id));
+      if ([...selected.keys()].some((id) => !available.has(id))) {
+        throw new Error("部分选中的推文已不可用，未生成图片；请先复制保存翻译，再重新查询");
+      }
       state.translations = payload.data.tweets.map((tweet) => selected.get(tweet.id) || "");
       state.included = payload.data.tweets.map((tweet) => selected.has(tweet.id));
       if (!state.included.some(Boolean)) throw new Error("选中的推文已不在当前公开数据中，请重新查询");
@@ -994,7 +998,7 @@
     $("#capture").replaceChildren(emptyPreview.cloneNode(true));
     $("#translation-list").replaceChildren();
     $("#translation-panel").hidden = true;
-    $("#preview-hint").textContent = "读取推文后，在这里查看效果";
+    $("#preview-hint").textContent = "暂无推文";
     $("#tweet-url").value = "";
     updateWorkflow();
     setView("edit");

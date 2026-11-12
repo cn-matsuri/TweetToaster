@@ -31,6 +31,7 @@
 - 下载图片中的推文时间沿用预览的浏览器时区，包括跨日与夏令时；不受服务器时区影响
 - 兼容旧 Bot 的 `/api/auto` + `/api/get_task=<id>` 异步协议
 - 默认使用免费公开的 FxTwitter/FxEmbed API，可切换到自建实例
+- 网页下载使用查询时的短期快照，主页更新不会漏掉已选推文；上游用户名读取暂时失败时会校验账号后尝试 ID 接口
 
 ## 直接部署预构建镜像
 
@@ -108,6 +109,8 @@ Content-Type: application/json
 `tweet` 现在也可以传主页或用户名。`template` 可留空、直接传模板 HTML、传 `/template/name.txt` 本地路径，或传白名单内的 HTTPS 模板地址。远程模板限制为 64 KB，并拒绝内网地址。
 
 Bot 可选传入 `timeZone`（例如 `Asia/Shanghai`、`Asia/Tokyo`、`America/New_York`）指定图片中的时区；省略时保留旧版的服务器默认时区。网页下载会自动传入预览所用的浏览器时区。无效时区返回 `400 INVALID_TIME_ZONE`。
+
+网页查询 `/api/tweet` 会返回 `snapshotId`，随后 `/api/render` 携带它，确保原文、计数和选择与预览一致，不在下载时重新抓取主页。快照只包含公开推文，不包含翻译或自定义 Logo；内存中最多 100 份 / 32 MiB，保留 30 分钟，重启后失效。过期或被容量淘汰时返回 `409 SNAPSHOT_EXPIRED`，编辑区仍保留翻译，请先复制保存再重新查询。旧客户端不传该字段仍兼容；任何选中项缺失都会明确报错，不会静默少出几条。
 
 经过整理的 [toastTemplates](https://github.com/cn-matsuri/toastTemplates) 已随程序和预构建镜像发布，无需在服务器再 clone。`/template/*.txt`、`/templates/*.txt`、`?template=/template/*.txt` 和旧模板的多样式注释格式继续兼容。维护者可以在相邻源码目录运行 `pnpm templates:sync` 重新导入上游目录；生成的 `frontend/templates/` 不包含废弃的 25 MB 远程字体。
 

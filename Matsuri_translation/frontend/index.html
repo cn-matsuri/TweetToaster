@@ -14,45 +14,33 @@
   <header class="app-header">
     <div class="brand">
       <img class="brand-mark" src="img/brand-logo.png" alt="夏色祭工坊">
-      <div><h1>烤推机 <span>TweetToaster</span></h1><p>把推文和翻译，放进同一张图</p></div>
+      <h1>烤推机 <span>TweetToaster</span></h1>
     </div>
-    <span class="header-note">免费使用 · 无需登录</span>
   </header>
   <nav class="view-switch" aria-label="工作区视图" role="tablist">
-    <button id="edit-view-button" type="button" role="tab" aria-controls="editor-view" aria-selected="true">1. 编辑内容</button>
-    <button id="preview-view-button" type="button" role="tab" aria-controls="preview-pane" aria-selected="false" tabindex="-1" disabled>2. 预览图片</button>
+    <button id="edit-view-button" type="button" role="tab" aria-controls="editor-view" aria-selected="true">编辑内容</button>
+    <button id="preview-view-button" type="button" role="tab" aria-controls="preview-pane" aria-selected="false" tabindex="-1" disabled>预览图片</button>
   </nav>
   <main class="app-shell">
     <section class="settings-pane" id="editor-view" aria-label="编辑内容">
       <div class="settings-scroll">
-        <header class="query-intro">
-          <span class="eyebrow">从一条推文开始</span>
-          <h2>粘贴链接，开始烤图</h2>
-          <p>选推文、写翻译、加落款，不用再来回 P 图。</p>
-        </header>
-
         <form id="tweet-form" class="query-form">
           <label for="tweet-url">X 主页、@用户名或推文链接</label>
           <div class="query-row">
             <input id="tweet-url" name="url" type="text" inputmode="url"
-              placeholder="粘贴 x.com 链接，或输入 @用户名" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+              placeholder="@用户名或 x.com 链接" autocomplete="off" autocapitalize="off" spellcheck="false" required>
             <button class="primary-button" id="query-button" type="submit">查询</button>
           </div>
-          <p class="field-help">单条链接精确选推；主页或用户名读取最近推文。不用输入 https://</p>
+          <p class="field-help">主页读取近期推文；链接可省略 https://。</p>
         </form>
 
         <div id="status" class="status" hidden role="status" aria-live="polite"></div>
-        <ol id="welcome-guide" class="welcome-guide" aria-label="使用步骤">
-          <li><span>1</span><div><strong>读取推文</strong><small>也支持主页和回复</small></div></li>
-          <li><span>2</span><div><strong>写下翻译</strong><small>选配模板与 Logo</small></div></li>
-          <li><span>3</span><div><strong>预览下载</strong><small>保存高清 PNG</small></div></li>
-        </ol>
 
         <section class="panel" id="translation-panel" hidden>
           <div class="panel-heading">
             <div>
-              <h2>选择推文，写下翻译</h2>
-              <p>勾选要出图的内容，也能单独选择回复。留空则只保留原文。</p>
+              <h2>推文与翻译</h2>
+              <p>勾选要出图的推文或回复；翻译可留空。</p>
             </div>
             <span class="count-badge" id="tweet-count"></span>
           </div>
@@ -68,7 +56,6 @@
           <div class="panel-heading">
             <div>
               <h2>落款与模板</h2>
-              <p>用你自己的翻译组落款；常用选择会记在这个浏览器。</p>
             </div>
           </div>
           <div class="field-grid">
@@ -89,7 +76,7 @@
           </div>
           <div class="asset-actions">
             <button class="mini-button" id="manage-assets" type="button">管理常用与上传…</button>
-            <span id="active-asset-note">模板与 Logo 只保存在这个浏览器</span>
+            <span id="active-asset-note">保存在此浏览器</span>
           </div>
           <input id="custom-logo" type="file" accept="image/png,image/jpeg,image/webp" hidden>
           <label class="check-row">
@@ -97,21 +84,21 @@
             <span>显示回复、转发和点赞数</span>
           </label>
           <details class="template-details">
-            <summary>高级：自定义翻译 HTML 模板</summary>
-            <p>用 <code>{T}</code> 代表翻译文字。危险标签、脚本和事件属性会被自动移除。</p>
+            <summary>高级 HTML 模板</summary>
+            <p><code>{T}</code> 为翻译内容；脚本等不安全内容会被移除。</p>
             <textarea id="template-input" rows="7" spellcheck="false"
               placeholder="<div class=&quot;my-template&quot;>{T}</div>"></textarea>
             <div class="template-save-row">
-              <input id="template-name" type="text" maxlength="60" placeholder="给这个模板起个名字">
+              <input id="template-name" type="text" maxlength="60" placeholder="模板名称">
               <button class="mini-button" id="save-template" type="button">保存到我的模板</button>
               <button class="mini-button" id="clear-template" type="button">停用自定义 HTML</button>
             </div>
-            <p>草稿和已保存模板会留在浏览器本地；不会保存到烤推机服务器。</p>
+            <p>草稿和模板仅保存在此浏览器。</p>
           </details>
         </section>
 
         <footer>
-          数据仅用于生成图片；PNG 缓存会自动清理。由免费的公开推文数据源驱动。
+          数据仅用于出图，PNG 缓存自动清理。
         </footer>
       </div>
     </section>
@@ -119,22 +106,19 @@
       <div class="preview-toolbar">
         <div>
           <strong>图片预览</strong>
-          <span id="preview-hint">读取推文后，在这里查看效果</span>
+          <span id="preview-hint">暂无推文</span>
         </div>
-        <span class="preview-quality">高清 PNG</span>
+        <span class="preview-quality">1280px PNG</span>
       </div>
       <div class="preview-scroll">
         <div id="capture-frame" class="capture-frame">
           <div id="capture" class="capture" aria-live="polite">
             <div class="empty-preview">
-              <span class="empty-symbol" aria-hidden="true">↗</span>
-              <h2>下一张烤推，从这里开始</h2>
-              <p>先在输入框粘贴推文链接或用户名。<br>选好推文、写下翻译，就能预览并下载。</p>
-              <div class="empty-caption">原文 + 翻译 + 你的落款</div>
+              <h2>暂无预览</h2>
+              <p>输入用户名或推文链接开始查询。</p>
             </div>
           </div>
         </div>
-        <p class="preview-note">预览已适应屏幕宽度，下载仍是 1280px 高清原图。</p>
       </div>
     </section>
     <div class="action-bar" id="action-bar" hidden>
@@ -150,15 +134,15 @@
       <header class="library-header">
         <div>
           <h2 id="asset-library-title">落款素材库</h2>
-          <p>模板库很大，下拉菜单只显示你钉住的常用项。</p>
+          <p>加入常用后显示在下拉菜单。</p>
         </div>
         <button class="ghost-button" id="close-library" type="button" aria-label="关闭素材库">完成</button>
       </header>
       <div class="library-toolbar">
         <input id="asset-search" type="search" placeholder="搜索角色、字幕组或模板名称">
-        <button class="secondary-button" id="upload-logo" type="button">上传自己的 Logo</button>
+        <button class="secondary-button" id="upload-logo" type="button">上传 Logo</button>
       </div>
-      <p class="library-privacy">自定义 Logo 原图保存在浏览器本地，不限 50 KB，也不会被统一缩小。下载时只会临时交给出图进程，不会存入素材库服务器。</p>
+      <p class="library-privacy">Logo 原图保存在此浏览器，不限 50 KB、保留原尺寸。下载时临时上传用于出图，不在服务器保存素材副本。</p>
       <section id="my-assets-section" hidden>
         <div class="library-section-title">
           <h3>我的素材</h3>

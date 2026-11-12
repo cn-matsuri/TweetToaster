@@ -194,6 +194,7 @@ function flattenTimelineResults(results) {
   return results.flatMap((item) => {
     if (!item || item.type === "tombstone") return [];
     if (item.type !== "thread") return [item];
+    if (Array.isArray(item.statuses)) return item.statuses;
     return [...(Array.isArray(item.thread) ? item.thread : []), item.status].filter(Boolean);
   });
 }
@@ -294,9 +295,7 @@ export class FxTwitterProvider {
     signal?.throwIfAborted();
     const parsed = parseTweetInput(input);
     if (parsed.kind === "profile") {
-      const query = new URLSearchParams({ count: String(this.timelineCount) });
-      const payload = await this.#request(`/profile/${encodeURIComponent(parsed.screenName)}/statuses?${query}`, { signal });
-      return normalizeTimelineResponse(payload, parsed, { maxStatuses: this.timelineCount });
+      return this.#fetchTimeline(parsed, { signal });
     }
 
     try {
@@ -312,6 +311,55 @@ export class FxTwitterProvider {
         statusError.cause = conversationError;
         throw statusError;
       }
+    }
+  }
+
+  async #fetchTimeline(parsed, { signal } = {}) {
+    // FxEmbed's username timeline path resolves a handle before fetching posts.
+    // A transient resolution failure can return 404 even for an existing user.
+    // Resolve the public profile and use the documented id:<id> route once;
+    // all three requests share one deadline, rather than multiplying timeouts.
+    const scope = requestScope({ signal, timeoutMs: this.timeoutMs, timeoutMessage: "公开推文数据源响应超时" });
+    const options = { signal: scope.signal };
+    const handle = encodeURIComponent(parsed.screenName);
+    const query = new URLSearchParams({ count: String(this.timelineCount) });
+    let recovering = false;
+    try {
+      let payload;
+      try {
+        payload = await this.#request(`/profile/${handle}/statuses?${query}`, options);
+      } catch (error) {
+        scope.signal.throwIfAborted();
+        if (error.status !== 404) throw error;
+      }
+      if (payload && payload.code !== 404) {
+        return normalizeTimelineResponse(payload, parsed, { maxStatuses: this.timelineCount });
+      }
+      recovering = true;
+      scope.signal.throwIfAborted();
+      const profile = await this.#request(`/profile/${handle}`, options);
+      const id = profile?.user?.id;
+      const screenName = profile?.user?.screen_name;
+      if (profile?.code !== 200 || typeof id !== "string" || !/^\d{1,20}$/.test(id) ||
+          typeof screenName !== "string" || screenName.toLowerCase() !== parsed.screenName.toLowerCase()) {
+        throw new TweetProviderError("无法确认主页身份", { status: 503 });
+      }
+      scope.signal.throwIfAborted();
+      const recovered = await this.#request(`/profile/id:${id}/statuses?${query}`, options);
+      return normalizeTimelineResponse(recovered, parsed, { maxStatuses: this.timelineCount });
+    } catch (error) {
+      signal?.throwIfAborted();
+      if (scope.signal.aborted) {
+        throw new TweetProviderError("公开推文数据源响应超时", { status: 503, code: "PROVIDER_UNAVAILABLE" });
+      }
+      if (!recovering) throw error;
+      const unavailable = new TweetProviderError("暂时无法读取该主页，请稍后重试或粘贴具体推文链接", {
+        status: 503, code: "TIMELINE_UNAVAILABLE"
+      });
+      unavailable.cause = error;
+      throw unavailable;
+    } finally {
+      scope.dispose();
     }
   }
 }
