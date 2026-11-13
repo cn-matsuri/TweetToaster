@@ -29,6 +29,105 @@ async function language(page, value) {
 
 const currentLanguage = (page) => page.locator("#language-switch [aria-checked='true']").getAttribute("data-language");
 
+async function assertLanguageSwitchGeometry(page) {
+  const geometry = await page.locator("#language-switch").evaluate((group) => {
+    const number = (value) => Number.parseFloat(value) || 0;
+    const bounds = group.getBoundingClientRect();
+    const groupStyle = getComputedStyle(group);
+    const thumbStyle = getComputedStyle(group, "::before");
+    // A pseudo-element has no DOMRect. Include its border/padding explicitly so
+    // this catches the original content-box + translateX(100%) overshoot.
+    const extras = thumbStyle.boxSizing === "border-box" ? { width: 0, height: 0 } : {
+      width: number(thumbStyle.borderLeftWidth) + number(thumbStyle.borderRightWidth) + number(thumbStyle.paddingLeft) + number(thumbStyle.paddingRight),
+      height: number(thumbStyle.borderTopWidth) + number(thumbStyle.borderBottomWidth) + number(thumbStyle.paddingTop) + number(thumbStyle.paddingBottom)
+    };
+    const transform = new DOMMatrix(thumbStyle.transform === "none" ? undefined : thumbStyle.transform);
+    const thumb = {
+      x: bounds.x + number(groupStyle.borderLeftWidth) + number(thumbStyle.left) + transform.m41,
+      y: bounds.y + number(groupStyle.borderTopWidth) + number(thumbStyle.top) + transform.m42,
+      width: number(thumbStyle.width) + extras.width,
+      height: number(thumbStyle.height) + extras.height
+    };
+    const buttons = [...group.querySelectorAll("button")].map((button) => {
+      const rect = button.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(button);
+      const text = range.getBoundingClientRect();
+      return {
+        selected: button.getAttribute("aria-checked") === "true",
+        x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+        leftTextSpace: text.left - rect.left, rightTextSpace: rect.right - text.right
+      };
+    });
+    const brandText = document.createRange();
+    brandText.selectNodeContents(document.querySelector(".brand h1"));
+    const brandRight = Math.max(document.querySelector(".brand").getBoundingClientRect().right, brandText.getBoundingClientRect().right);
+    const logo = document.querySelector(".brand-mark").getBoundingClientRect();
+    return {
+      boxSizing: thumbStyle.boxSizing, thumb, buttons,
+      outerInset: group.dataset.language === "en" ? thumb.x - bounds.x : bounds.right - thumb.x - thumb.width,
+      topInset: thumb.y - bounds.y, bottomInset: bounds.bottom - thumb.y - thumb.height,
+      brandGap: bounds.left - brandRight, logoWidth: logo.width, logoHeight: logo.height
+    };
+  });
+  const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) <= 0.5, `${message}: ${actual} vs ${expected}`);
+  assert.equal(geometry.boxSizing, "border-box", "the animated thumb border must be included in its track width");
+  const selected = geometry.buttons.find((button) => button.selected);
+  for (const dimension of ["x", "y", "width", "height"]) near(geometry.thumb[dimension], selected[dimension], `thumb ${dimension} must match the selected button`);
+  near(geometry.buttons[0].width, geometry.buttons[1].width, "language tracks must have equal width");
+  near(geometry.buttons[1].x - geometry.buttons[0].x - geometry.buttons[0].width, 2, "language tracks must keep their gap");
+  for (const inset of ["outerInset", "topInset", "bottomInset"]) near(geometry[inset], 5, `${inset} must remain symmetric in both selected states`);
+  assert.ok(geometry.brandGap >= 7.5, `the brand and language switch must not collide: ${geometry.brandGap}px`);
+  near(geometry.logoWidth, geometry.logoHeight, "the brand logo must not be squeezed to make the switch fit");
+  for (const button of geometry.buttons) {
+    assert.ok(button.width >= 44 && button.height >= 44, `language touch target must be at least 44px: ${JSON.stringify(button)}`);
+    assert.ok(button.leftTextSpace >= 10 && button.rightTextSpace >= 10, `language labels need breathing room: ${JSON.stringify(button)}`);
+    near(button.leftTextSpace, button.rightTextSpace, "language text must remain centered in its track");
+  }
+}
+
+async function assertLibraryGeometry(page, width) {
+  const layout = await page.locator("#asset-library").evaluate((dialog) => {
+    const rect = dialog.getBoundingClientRect();
+    const shell = dialog.querySelector(".library-shell");
+    return {
+      left: rect.left, right: rect.right,
+      clientWidth: shell.clientWidth, scrollWidth: shell.scrollWidth,
+      controls: [...dialog.querySelectorAll("button, input")].filter((node) => node.getClientRects().length).map((node) => {
+        const bounds = node.getBoundingClientRect();
+        return { label: node.textContent.trim() || node.id, left: bounds.left, right: bounds.right, height: bounds.height, clientWidth: node.clientWidth, scrollWidth: node.scrollWidth };
+      })
+    };
+  });
+  assert.ok(layout.left >= 0 && layout.right <= width + 1, "the library must fit the viewport");
+  assert.ok(layout.scrollWidth <= layout.clientWidth + 1, "the library must not scroll horizontally");
+  for (const control of layout.controls) {
+    assert.ok(control.left >= layout.left && control.right <= layout.right + 1, `${control.label} must stay inside the library`);
+    assert.ok(control.scrollWidth <= control.clientWidth + 1, `${control.label} must not clip its label`);
+  }
+  assert.ok(layout.controls.find((control) => control.label === "asset-search").height >= 44, "the mobile library search field must not collapse in its flex column");
+}
+
+async function assertFontSelectGeometry(page) {
+  const select = await page.locator("#font-size-select").evaluate((node) => {
+    const style = getComputedStyle(node);
+    const context = document.createElement("canvas").getContext("2d");
+    context.font = style.font;
+    return {
+      tagName: node.tagName, labelCount: node.labels.length, disabled: node.disabled,
+      available: node.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight),
+      options: [...node.options].map((option) => ({ value: option.value, text: option.textContent, width: context.measureText(option.textContent).width }))
+    };
+  });
+  assert.equal(select.tagName, "SELECT", "font size must retain the accessible native select, not a custom dropdown");
+  assert.equal(select.labelCount, 1, "the native select must retain its associated label");
+  assert.equal(select.disabled, false);
+  assert.deepEqual(select.options.map((option) => option.value), ["26", "23", "30"]);
+  for (const option of select.options) {
+    assert.ok(select.available - option.width >= 2, `${option.text} needs at least 2px of room before the reserved arrow area: ${option.width}px text / ${select.available}px available`);
+  }
+}
+
 // Reuse exactly the same user-visible assertions in Chromium and WebKit.
 // The server still renders PNGs in Chromium, just like the production image.
 export async function localizationBrowserSuite(t, browserType) {
@@ -73,6 +172,7 @@ export async function localizationBrowserSuite(t, browserType) {
       await t.test(`English and Chinese fit ${width}px with an accessible language switch`, async () => {
         const page = await newPage({ width, desktop: width === 1280 });
         try {
+          await page.emulateMedia({ reducedMotion: "reduce" });
           assert.equal(await currentLanguage(page), "en");
           assert.equal(await page.locator("h1").textContent(), "TweetToaster");
           assert.equal(await page.title(), "TweetToaster");
@@ -87,6 +187,8 @@ export async function localizationBrowserSuite(t, browserType) {
               assert.ok(box && box.x >= 0 && box.x + box.width <= width + 1 && box.y >= 0 && box.y + box.height < 780,
                 `${selector} must be visible above the fold at ${width}px: ${JSON.stringify(box)}`);
             }
+            await assertLanguageSwitchGeometry(page);
+            await assertFontSelectGeometry(page);
             await noHorizontalOverflow(page);
             if (process.env.TWEETTOASTER_TEST_SCREENSHOTS && (width === 320 || width === 1280)) {
               await page.screenshot({ path: path.join(process.env.TWEETTOASTER_TEST_SCREENSHOTS, `${browserType.name()}-${value}-${width}.png`), animations: "disabled" });
@@ -99,20 +201,83 @@ export async function localizationBrowserSuite(t, browserType) {
             assert.equal(await page.evaluate(() => document.activeElement.dataset.language), value);
             assert.deepEqual(await page.locator("#language-switch button").evaluateAll((buttons) => buttons.map((button) => button.tabIndex)), value === "en" ? [0, -1] : [-1, 0]);
           }
-          await page.locator("#manage-assets").click();
-          const dialog = page.locator("#asset-library");
-          await dialog.waitFor({ state: "visible" });
-          const bounds = await dialog.boundingBox();
-          assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width + 1);
-          await page.locator("#asset-search").fill("no-such-template-123");
-          const emptyText = await page.locator(".empty-assets").textContent();
-          assert.match(emptyText, /[a-z]/i);
-          assert.doesNotMatch(emptyText, /[\u4e00-\u9fff]/);
-          await page.locator("#close-library").click();
-          assert.equal(await dialog.isVisible(), false);
+          const focus = await page.locator("#language-switch [aria-checked='true']").evaluate((button) => ({
+            visible: button.matches(":focus-visible"), outlineWidth: getComputedStyle(button).outlineWidth,
+            outlineOffset: getComputedStyle(button).outlineOffset,
+            transition: getComputedStyle(button.parentElement, "::before").transitionDuration
+          }));
+          assert.equal(focus.visible, true, "keyboard switching must retain a visible focus ring");
+          assert.equal(focus.outlineWidth, "2px");
+          assert.equal(focus.outlineOffset, "2px", "focus ring must fit inside the switch's padded rim");
+          assert.equal(focus.transition, "0s", "reduced-motion users must not get a sliding thumb");
+          if (width === 390) {
+            // Equal tracks must also follow the wider label when text is enlarged.
+            await page.locator("#language-switch button").evaluateAll((buttons) => buttons.forEach((button) => { button.style.fontSize = "20px"; }));
+            for (const value of ["en", "zh"]) {
+              await language(page, value);
+              await assertLanguageSwitchGeometry(page);
+              await noHorizontalOverflow(page);
+            }
+            await page.locator("#language-switch button").evaluateAll((buttons) => buttons.forEach((button) => button.style.removeProperty("font-size")));
+          }
+          for (const value of ["en", "zh"]) {
+            await language(page, value);
+            await page.locator("#manage-assets").click();
+            const dialog = page.locator("#asset-library");
+            await dialog.waitFor({ state: "visible" });
+            await assertLibraryGeometry(page, width);
+            await page.locator("#asset-search").fill("no-such-template-123");
+            const emptyText = await page.locator(".empty-assets").textContent();
+            if (value === "en") {
+              assert.match(emptyText, /[a-z]/i);
+              assert.doesNotMatch(emptyText, /[\u4e00-\u9fff]/);
+            } else assert.match(emptyText, /[\u4e00-\u9fff]/);
+            await page.locator("#close-library").click();
+            assert.equal(await dialog.isVisible(), false);
+          }
+          if (browserType.name() === "chromium" && width === 320) {
+            await page.emulateMedia({ forcedColors: "active" });
+            const fallback = await page.locator("#font-size-select").evaluate((select) => ({
+              active: matchMedia("(forced-colors: active)").matches,
+              appearance: getComputedStyle(select).appearance,
+              backgroundImage: getComputedStyle(select).backgroundImage
+            }));
+            assert.deepEqual(fallback, { active: true, appearance: "auto", backgroundImage: "none" }, "forced colors must restore the native select indicator");
+            await page.locator("#font-size-select").selectOption("23");
+            assert.equal(await page.locator("#font-size-select").inputValue(), "23");
+          }
         } finally { await page.close(); }
       });
     }
+
+    await t.test("the animated language thumb settles on both tracks and after rapid switching", async () => {
+      const page = await newPage();
+      try {
+        await page.emulateMedia({ reducedMotion: "no-preference" });
+        const duration = await page.locator("#language-switch").evaluate((group) => getComputedStyle(group, "::before").transitionDuration);
+        assert.ok(Number.parseFloat(duration) > 0, "this case must exercise the real transition, not reduced-motion CSS");
+        const waitForThumb = async () => {
+          // Let style changes start their transition before checking its end.
+          await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+          await page.waitForFunction(() => {
+            const group = document.querySelector("#language-switch");
+            const thumb = getComputedStyle(group, "::before");
+            const matrix = new DOMMatrix(thumb.transform === "none" ? undefined : thumb.transform);
+            const left = group.getBoundingClientRect().left + Number.parseFloat(getComputedStyle(group).borderLeftWidth) + Number.parseFloat(thumb.left) + matrix.m41;
+            return Math.abs(left - group.querySelector("[aria-checked='true']").getBoundingClientRect().left) < 0.25;
+          });
+          await assertLanguageSwitchGeometry(page);
+        };
+        for (const value of ["zh", "en"]) {
+          await language(page, value);
+          await waitForThumb();
+        }
+        for (const value of ["zh", "en", "zh", "en", "zh"]) await language(page, value);
+        await waitForThumb();
+        assert.equal(await currentLanguage(page), "zh");
+        await noHorizontalOverflow(page);
+      } finally { await page.close(); }
+    });
 
     await t.test("browser language defaults, saved choice, and unavailable localStorage are handled", async () => {
       for (const [locale, expected] of [["zh-TW", "zh"], ["en-GB", "en"], ["ja-JP", "en"]]) {
@@ -211,6 +376,8 @@ export async function localizationBrowserSuite(t, browserType) {
         await page.locator("#download-button").click();
         assert.equal(await page.locator("#language-switch").getAttribute("aria-disabled"), "true", "an in-progress export must keep the preview language stable");
         assert.deepEqual(await page.locator("#language-switch button").evaluateAll((buttons) => buttons.map((button) => button.disabled)), [true, true]);
+        assert.equal(await page.locator("#language-switch").evaluate((group) => getComputedStyle(group).opacity), "0.65");
+        assert.deepEqual(await page.locator("#language-switch button").evaluateAll((buttons) => buttons.map((button) => getComputedStyle(button).opacity)), ["1", "1"], "disabled language labels must not be faded twice");
         const download = await downloading;
         const image = await readFile(await download.path());
         assert.equal(image.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
